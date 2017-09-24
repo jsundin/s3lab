@@ -17,7 +17,7 @@
       "directory": "/some/other/directory/",
       "rules": [
         {
-          "rule": "filenamePrefixExclude",
+          "rule": "excludeFilenamePrefix",
           "prefix": "db."
         }
       ]

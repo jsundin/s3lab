@@ -1,7 +1,5 @@
 package s4lab.fs.rules;
 
-import s4lab.fs.rules.ExcludeRule;
-
 import java.io.File;
 import java.time.LocalDateTime;
 
