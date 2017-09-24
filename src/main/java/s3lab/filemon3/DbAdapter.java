@@ -1,8 +1,5 @@
 package s3lab.filemon3;
 
-import org.h2.jdbcx.JdbcDataSource;
-
-import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -175,11 +172,13 @@ public class DbAdapter {
   }
 
   private Connection getConnection(String url) throws SQLException {
+    /*
     JdbcDataSource ds = new JdbcDataSource();
     ds.setURL(url);
     ds.setUser("sa");
     ds.setPassword("sa");
     return ds.getConnection();
-    //return DriverManager.getConnection(url);
+    */
+    return DriverManager.getConnection(url);
   }
 }

@@ -1,4 +1,4 @@
-create table files (
+create table file (
     id varchar(40),
     filename varchar(4096),
 
@@ -13,6 +13,6 @@ create table file_version (
     deleted boolean,
 
     primary key (id),
-    foreign key (file_id) references files (id),
+    foreign key (file_id) references file (id),
     unique (file_id, version)
 );

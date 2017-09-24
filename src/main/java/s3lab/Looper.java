@@ -1,13 +1,17 @@
 package s3lab;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Looper {
+  private static final Logger logger = LoggerFactory.getLogger(Looper.class);
   private static final BlockingQueue<LooperMessage> queue = new LinkedBlockingQueue<>();
 
   private void internalLoop(RunnableHandler rh, MessageHandler mh) {
-    System.out.println("> Looper running on '" + Thread.currentThread().getName() + "'");
+    logger.debug("Looper running in thread '" + Thread.currentThread().getName() + "'");
     boolean finished = false;
     do {
       LooperMessage m;
@@ -20,7 +24,7 @@ public class Looper {
       switch (m.messageType) {
         case EXECUTE:
           if (rh == null) {
-            System.err.println("EXECUTE without a runnableHandler is not allowed");
+            logger.error("EXECUTE without a runnableHandler is not allowed");
           } else {
             rh.run(m.runnable);
           }
@@ -28,7 +32,7 @@ public class Looper {
 
         case MESSAGE:
           if (mh == null) {
-            System.err.println("MESSAGE without a messageHandler is not allowed");
+            logger.error("MESSAGE without a messageHandler is not allowed");
           } else {
             mh.handleMessage(m.message);
           }
@@ -39,10 +43,10 @@ public class Looper {
           break;
 
         default:
-          System.err.println("Unknown messageType: " + m.messageType);
+          logger.error("Unknown messageType: {}", m.messageType);
       }
     } while (!finished);
-    System.out.println("> Looper finished on '" + Thread.currentThread().getName() + "'");
+    logger.debug("Looper finished in thread '" + Thread.currentThread().getName() + "'");
   }
 
   public void loop(MessageHandler mh) {
