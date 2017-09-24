@@ -1,4 +1,4 @@
-package s4lab.fs;
+package s4lab.fs.rules;
 
 import java.io.File;
 

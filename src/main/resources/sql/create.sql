@@ -18,3 +18,4 @@ create table file_version (
 );
 
 create index file_version_version on file_version (version);
+create index file_version_modified on file_version (modified);

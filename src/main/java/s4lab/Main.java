@@ -3,7 +3,12 @@ package s4lab;
 import s4lab.db.DbHandler;
 import s4lab.db.FileRepository;
 import s4lab.fs.*;
+import s4lab.fs.rules.ExcludeHiddenFilesRule;
+import s4lab.fs.rules.ExcludeOldFilesRule;
+import s4lab.fs.rules.ExcludePathPrefixRule;
+import s4lab.fs.rules.ExcludeSymlinksRule;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 public class Main {
@@ -15,18 +20,26 @@ public class Main {
     BackupAgent backupAgent = new BackupAgent(fileRepository);
     backupAgent.start();
 
-    fs.scan(backupAgent.getFileScanQueue(),
+    LocalDateTime latestModified = fileRepository.findLatestModifiedFile();
+
+    fs.scan(backupAgent,
             Arrays.asList(
-                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude"))
-                    new DirectoryConfiguration("/home/jsundin/")
+                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new ExcludePathPrefixRule("/home/jsundin/tmp/filemontest/exclude"))
+                    new DirectoryConfiguration("/home/jsundin/",
+                            new ExcludePathPrefixRule("/home/jsundin/tmp/squash/"),
+                            new ExcludePathPrefixRule("/home/jsundin/Android/"),
+                            new ExcludePathPrefixRule("/home/jsundin/AndroidStudioProjects/"),
+                            new ExcludePathPrefixRule("/home/jsundin/apps/")),
+                    new DirectoryConfiguration("/aleska/video")
             ),
-            new SymlinkExcludeRule(),
-            new HiddenFileExcludeRule()
+            new ExcludeOldFilesRule(latestModified),
+            new ExcludeSymlinksRule(),
+            new ExcludeHiddenFilesRule()
     );
 
-    Thread.sleep(2000);
+    //Thread.sleep(2000);
 
-    backupAgent.finish(true);
+    backupAgent.finish();
   }
 /*
 
@@ -37,12 +50,12 @@ public class Main {
     FileSystemScanner fs = new FileSystemScanner(xyz.runner.fileQueue);
     fs.scan(
             Arrays.asList(
-                    new DirectoryConfiguration("/home/jsundin/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemonlab/exclude/"))
-                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude/"))
+                    new DirectoryConfiguration("/home/jsundin/", new ExcludePathPrefixRule("/home/jsundin/tmp/filemonlab/exclude/"))
+                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new ExcludePathPrefixRule("/home/jsundin/tmp/filemontest/exclude/"))
             ),
-            new SymlinkExcludeRule(),
-            new HiddenFileExcludeRule(),
-            new PathSuffixExcludeRule(".log")
+            new ExcludeSymlinksRule(),
+            new ExcludeHiddenFilesRule(),
+            new ExcludePathSuffixRule(".log")
     );
 
     xyz.finish(true);

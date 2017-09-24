@@ -1,5 +1,7 @@
 package s4lab.fs;
 
+import s4lab.fs.rules.ExcludeRule;
+
 public class DirectoryConfiguration {
   private final String directory;
   private final ExcludeRule[] excludeRules;

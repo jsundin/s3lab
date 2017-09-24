@@ -4,11 +4,11 @@
       "directory": "/home/jsundin/tmp/filemontest/",
       "rules": [
         {
-          "rule": "pathPrefixExclude",
+          "rule": "excludePathPrefix",
           "prefix": "/home/jsundin/tmp/filemontest/exclude/"
         },
         {
-          "rule": "pathSuffixExclude",
+          "rule": "excludePathSuffix",
           "suffix": ".log"
         }
       ]
@@ -25,10 +25,10 @@
   ],
   "globalRules": [
     {
-      "rule": "symlinkExclude"
+      "rule": "excludeSymlinks"
     },
     {
-      "rule": "hiddenFileExclude"
+      "rule": "excludeHiddenFiles"
     }
   ]
 }

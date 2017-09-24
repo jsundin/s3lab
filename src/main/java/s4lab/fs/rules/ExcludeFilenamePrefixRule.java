@@ -1,11 +1,11 @@
-package s4lab.fs;
+package s4lab.fs.rules;
 
 import java.io.File;
 
-public class FilenamePrefixExcludeRule implements ExcludeRule {
+public class ExcludeFilenamePrefixRule implements ExcludeRule {
   private final String prefix;
 
-  public FilenamePrefixExcludeRule(String prefix) {
+  public ExcludeFilenamePrefixRule(String prefix) {
     this.prefix = prefix;
   }
 

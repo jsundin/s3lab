@@ -1,11 +1,11 @@
-package s4lab.fs;
+package s4lab.fs.rules;
 
 import java.io.File;
 
-public class PathSuffixExcludeRule implements ExcludeRule {
+public class ExcludePathSuffixRule implements ExcludeRule {
   private final String suffix;
 
-  public PathSuffixExcludeRule(String suffix) {
+  public ExcludePathSuffixRule(String suffix) {
     this.suffix = suffix;
   }
 

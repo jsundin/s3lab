@@ -1,11 +1,11 @@
-package s4lab.fs;
+package s4lab.fs.rules;
 
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 
-public class SymlinkExcludeRule implements ExcludeRule {
+public class ExcludeSymlinksRule implements ExcludeRule {
   @Override
   public boolean exclude(File f) {
     try {

@@ -1,5 +1,8 @@
 package s4lab.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -9,6 +12,7 @@ import java.util.UUID;
 import static s3lab.Utils.longToLDT;
 
 public class FileRepository {
+  private Logger logger = LoggerFactory.getLogger(getClass());
   private final DbHandler dbHandler;
 
   public FileRepository(DbHandler dbHandler) {
@@ -94,6 +98,23 @@ public class FileRepository {
         stmt.setTimestamp(4, Timestamp.valueOf(modified));
         stmt.setBoolean(5, deleted);
         stmt.executeUpdate();
+      }
+    }
+  }
+
+  public LocalDateTime findLatestModifiedFile() throws SQLException {
+    try (Connection conn = dbHandler.getConnection()) {
+      try (PreparedStatement stmt = conn.prepareStatement("select max(modified) from file_version")) {
+        try (ResultSet rs = stmt.executeQuery()) {
+          if (!rs.next()) {
+            return null;
+          }
+          Timestamp timestamp = rs.getTimestamp(1);
+          if (rs.next()) {
+            throw new RuntimeException("Got too many results");
+          }
+          return timestamp.toLocalDateTime();
+        }
       }
     }
   }
