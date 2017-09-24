@@ -2,17 +2,49 @@ package s4lab;
 
 import s4lab.db.DbHandler;
 import s4lab.db.FileRepository;
-import s4lab.fs.*;
+import s4lab.fs.DirectoryConfiguration;
+import s4lab.fs.FileSystemScanner;
 import s4lab.fs.rules.ExcludeHiddenFilesRule;
 import s4lab.fs.rules.ExcludeOldFilesRule;
 import s4lab.fs.rules.ExcludePathPrefixRule;
 import s4lab.fs.rules.ExcludeSymlinksRule;
 
+import java.io.File;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
   public static void main(String[] args) throws Exception {
+    DbHandler dbHandler = new DbHandler();
+    FileRepository fileRepository = new FileRepository(dbHandler);
+
+    List<String> files = fileRepository.findLatestFileAndVersionNotDeleted();
+    List<FileRepository.tmpFileAndVersion> toDelete = files.stream()
+            .map(File::new)
+            .filter(f -> !f.exists() || !f.isFile())
+            .map(f -> {
+              try {
+                return fileRepository.getLatestVersionOByFilename(f.toString());
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            })
+            .peek(tfv -> tfv.setVersion(tfv.getVersion() + 1))
+            .peek(tfv -> tfv.setDeleted(true))
+            .collect(Collectors.toList());
+    toDelete.forEach(f -> {
+      try {
+        fileRepository.saveNewVersion(f.getId(), f.getVersion(), f.getModified(), f.isDeleted());
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    });
+  }
+
+  public static void xmain(String[] args) throws Exception {
     FileSystemScanner fs = new FileSystemScanner();
     DbHandler dbHandler = new DbHandler();
     FileRepository fileRepository = new FileRepository(dbHandler);

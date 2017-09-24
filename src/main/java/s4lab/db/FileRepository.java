@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -117,6 +118,20 @@ public class FileRepository {
         }
       }
     }
+  }
+
+  public List<String> findLatestFileAndVersionNotDeleted() throws SQLException {
+    List<String> found = new ArrayList<>();
+    try (Connection conn = dbHandler.getConnection()) {
+      try (PreparedStatement stmt = conn.prepareStatement("select f.filename from file f join file_version v on f.id=v.file_id where v.version=(select max(version) from file_version v2 where v2.file_id=f.id) and v.deleted=false")) {
+        try (ResultSet rs = stmt.executeQuery()) {
+          while (rs.next()) {
+            found.add(rs.getString(1));
+          }
+        }
+      }
+    }
+    return found;
   }
 
   public class tmpFileAndVersion {
