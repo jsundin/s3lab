@@ -14,6 +14,14 @@ import java.util.List;
 public class DbHandler {
   private String jdbcUrl = "jdbc:derby:files";
 
+  public void start() {
+
+  }
+
+  public void finish() {
+
+  }
+
   public void dropDatabase() throws SQLException, IOException {
     executeScript("/sql/drop.sql");
   }

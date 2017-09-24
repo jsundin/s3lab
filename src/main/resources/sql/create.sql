@@ -16,3 +16,5 @@ create table file_version (
     foreign key (file_id) references file (id),
     unique (file_id, version)
 );
+
+create index file_version_version on file_version (version);

@@ -1,19 +1,24 @@
 package s4lab;
 
+import s4lab.db.DbHandler;
+import s4lab.db.FileRepository;
 import s4lab.fs.*;
 
 import java.util.Arrays;
 
 public class Main {
   public static void main(String[] args) throws Exception {
-    FileScannerNG fs = new FileScannerNG();
+    FileSystemScanner fs = new FileSystemScanner();
+    DbHandler dbHandler = new DbHandler();
+    FileRepository fileRepository = new FileRepository(dbHandler);
 
-    BackupAgent backupAgent = new BackupAgent();
+    BackupAgent backupAgent = new BackupAgent(fileRepository);
     backupAgent.start();
 
     fs.scan(backupAgent.getFileScanQueue(),
             Arrays.asList(
-                    new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude"))
+                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude"))
+                    new DirectoryConfiguration("/home/jsundin/")
             ),
             new SymlinkExcludeRule(),
             new HiddenFileExcludeRule()
@@ -29,7 +34,7 @@ public class Main {
     XYZ xyz = new XYZ();
     xyz.start();
 
-    FileScannerNG fs = new FileScannerNG(xyz.runner.fileQueue);
+    FileSystemScanner fs = new FileSystemScanner(xyz.runner.fileQueue);
     fs.scan(
             Arrays.asList(
                     new DirectoryConfiguration("/home/jsundin/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemonlab/exclude/"))

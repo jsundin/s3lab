@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Queue;
 
-public class FileScannerNG {
+public class FileSystemScanner {
   private Logger logger = LoggerFactory.getLogger(getClass());
 
   private int scan(Queue<File> targetQueue, File directory, FileFilter fileFilter) {

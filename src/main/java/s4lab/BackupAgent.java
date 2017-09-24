@@ -3,16 +3,26 @@ package s4lab;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s3lab.Looper;
+import s4lab.db.FileRepository;
 
 import java.io.File;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static s3lab.Utils.longToLDT;
 
 public class BackupAgent {
   private static final Logger logger = LoggerFactory.getLogger(BackupAgent.class);
   private BackupAgentThread baThread;
   private FileScanResultThread fileScanResultThread;
+  private final FileRepository fileRepository;
+
+  public BackupAgent(FileRepository fileRepository) {
+    this.fileRepository = fileRepository;
+  }
 
   public void start() {
     if (baThread != null) {
@@ -59,9 +69,22 @@ public class BackupAgent {
       do {
         try {
           File file = fileScanQueue.take();
-          // här ska vi alltså kolla i databasen om filen finns redan,
-          // och lagra ner den om den är förändrad på något vis
-          System.out.println(file);
+          try {
+            FileRepository.tmpFileAndVersion saved = fileRepository.getLatestVersionOByFilename(file.toString());
+            if (saved != null) {
+              LocalDateTime lastModified = longToLDT(file.lastModified());
+              if (saved.isDeleted() || !saved.getModified().equals(lastModified)) {
+                System.out.println("UPDATE: " + file);
+                fileRepository.saveNewVersion(saved.getId(), saved.getVersion() + 1, lastModified, false);
+              }
+            } else {
+              // create
+              System.out.println("CREATE: " + file);
+              fileRepository.saveSimple(file);
+            }
+          } catch (SQLException e) {
+            e.printStackTrace();
+          }
         } catch (InterruptedException ignored) {}
       } while (!finished);
     }

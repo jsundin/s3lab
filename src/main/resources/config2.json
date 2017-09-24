@@ -1,0 +1,34 @@
+{
+  "directories": [
+    {
+      "directory": "/home/jsundin/tmp/filemontest/",
+      "rules": [
+        {
+          "rule": "pathPrefixExclude",
+          "prefix": "/home/jsundin/tmp/filemontest/exclude/"
+        },
+        {
+          "rule": "pathSuffixExclude",
+          "suffix": ".log"
+        }
+      ]
+    },
+    {
+      "directory": "/some/other/directory/",
+      "rules": [
+        {
+          "rule": "filenamePrefixExclude",
+          "prefix": "db."
+        }
+      ]
+    }
+  ],
+  "globalRules": [
+    {
+      "rule": "symlinkExclude"
+    },
+    {
+      "rule": "hiddenFileExclude"
+    }
+  ]
+}
