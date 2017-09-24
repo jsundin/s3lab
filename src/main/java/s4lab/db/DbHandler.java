@@ -1,4 +1,4 @@
-package s3lab.file4;
+package s4lab.db;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -51,7 +51,7 @@ public class DbHandler {
     }
   }
 
-  private Connection getConnection() throws SQLException {
+  Connection getConnection() throws SQLException {
     return DriverManager.getConnection(jdbcUrl);
   }
 }

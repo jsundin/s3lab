@@ -1,7 +1,8 @@
-package s3lab.file4;
+package s4lab;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import s4lab.db.DbHandler;
 
 import java.sql.SQLException;
 

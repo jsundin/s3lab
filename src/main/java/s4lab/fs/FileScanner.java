@@ -21,6 +21,9 @@ public class FileScanner {
   }
 
   public List<File> scan(List<DirectoryConfiguration> directoryConfigurations, ExcludeRule... globalExcludeRules) {
+    logger.info("Started scanning " + directoryConfigurations.size() + " configurations");
+    long t0 = System.currentTimeMillis();
+
     List<File> allFiles = new ArrayList<>();
     for (DirectoryConfiguration directoryConfiguration : directoryConfigurations) {
       File directory = new File(directoryConfiguration.getDirectory());
@@ -43,6 +46,8 @@ public class FileScanner {
       Collection<File> files = scan(directory, new ExcludingFileFilter(mergedRules));
       allFiles.addAll(files);
     }
+
+    logger.info("Finished scanning " + directoryConfigurations.size() + " configurations, found " + allFiles.size() + " files in " + (System.currentTimeMillis() - t0) + "ms");
     return allFiles;
   }
 
