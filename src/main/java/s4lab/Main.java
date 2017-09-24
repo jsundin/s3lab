@@ -1,44 +1,76 @@
 package s4lab;
 
-import s4lab.db.DbHandler;
-import s4lab.db.FileRepository;
-import s4lab.fs.DirectoryConfiguration;
-import s4lab.fs.FileScanner;
-import s4lab.fs.PathPrefixExcludeRule;
-import s4lab.fs.SymlinkExcludeRule;
+import s4lab.fs.*;
 
-import java.io.File;
-import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.List;
 
 public class Main {
   public static void main(String[] args) throws Exception {
-    scanAndSave();
-/*
+    FileScannerNG fs = new FileScannerNG();
 
     BackupAgent backupAgent = new BackupAgent();
     backupAgent.start();
 
-    Thread.sleep(2000);
-
-    backupAgent.finish();
-    */
-  }
-
-  public static void scanAndSave() throws SQLException {
-    FileScanner fs = new FileScanner();
-    List<File> files = fs.scan(
+    fs.scan(backupAgent.getFileScanQueue(),
             Arrays.asList(
-                    //new DirectoryConfiguration("/home/jsundin/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemonlab/exclude/"))
-                    new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude/"))
+                    new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude"))
             ),
-            new SymlinkExcludeRule()
+            new SymlinkExcludeRule(),
+            new HiddenFileExcludeRule()
     );
 
-    DbHandler dbh = new DbHandler();
-    FileRepository fr = new FileRepository(dbh);
+    Thread.sleep(2000);
 
-    fr.deleteAndInsertFiles(files);
+    backupAgent.finish(true);
   }
+/*
+
+  public static void scanAndSave() throws SQLException {
+    XYZ xyz = new XYZ();
+    xyz.start();
+
+    FileScannerNG fs = new FileScannerNG(xyz.runner.fileQueue);
+    fs.scan(
+            Arrays.asList(
+                    new DirectoryConfiguration("/home/jsundin/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemonlab/exclude/"))
+                    //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new PathPrefixExcludeRule("/home/jsundin/tmp/filemontest/exclude/"))
+            ),
+            new SymlinkExcludeRule(),
+            new HiddenFileExcludeRule(),
+            new PathSuffixExcludeRule(".log")
+    );
+
+    xyz.finish(true);
+  }
+
+  private static class XYZ {
+    private Runner runner = new Runner();
+
+    public void start() {
+      runner.start();
+    }
+
+    public void finish(boolean graceful) {
+      if (!graceful || runner.fileQueue.isEmpty()) {
+        runner.finished = true;
+        runner.interrupt();
+      }
+    }
+
+    private class Runner extends Thread {
+      private final BlockingQueue<File> fileQueue = new LinkedBlockingQueue<>();
+      private volatile boolean finished = false;
+
+      @Override
+      public void run() {
+        do {
+          try {
+            File f = fileQueue.take();
+            System.out.println(f);
+          } catch (InterruptedException ignored) {}
+        } while (!finished);
+      }
+    }
+  }
+*/
 }
