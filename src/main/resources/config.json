@@ -1,0 +1,8 @@
+{
+  "includes": [
+    "/home/jsundin/tmp/filemontest"
+  ],
+  "excludes": [
+    "/home/jsundin/tmp/exclude"
+  ]
+}
