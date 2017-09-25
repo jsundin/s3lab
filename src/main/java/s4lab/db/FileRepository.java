@@ -114,7 +114,7 @@ public class FileRepository {
           if (rs.next()) {
             throw new RuntimeException("Got too many results");
           }
-          return timestamp.toLocalDateTime();
+          return timestamp == null ? null : timestamp.toLocalDateTime();
         }
       }
     }

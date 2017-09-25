@@ -143,12 +143,18 @@ public class BackupAgent {
 
       try {
         FileRepository.tmpFileAndVersion savedVersion = fileRepository.getLatestVersionOByFilename(file.toString());
-        if (savedVersion == null) {
+
+        if (!file.exists() && savedVersion != null) {
+          System.out.println("DELETE: " + file);
+          fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, LocalDateTime.now(), true);
+        } else if (savedVersion == null) {
           System.out.println("CREATE: " + file);
           fileRepository.saveSimple(file);
         } else if (savedVersion.isDeleted() || !savedVersion.getModified().equals(lastModified)) {
           System.out.println("UPDATE: " + file);
           fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, lastModified, false);
+        } else {
+          logger.error("Got a file notification for '" + file + "' that doesn't seem to have changed?");
         }
       } catch (SQLException e1) {
         e1.printStackTrace();

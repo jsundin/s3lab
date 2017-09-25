@@ -5,14 +5,24 @@ import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.BackupAgent;
+import s4lab.db.DbHandler;
 import s4lab.fs.rules.ExcludeRule;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 public class FileSystemScanner {
   private Logger logger = LoggerFactory.getLogger(getClass());
+  private final DbHandler dbHandler;
+
+  public FileSystemScanner(DbHandler dbHandler) {
+    this.dbHandler = dbHandler;
+  }
 
   private int[] scan(BackupAgent backupAgent, File directory, FileFilter fileFilter) {
     File[] files = directory.listFiles();
@@ -43,6 +53,25 @@ public class FileSystemScanner {
     return foundFiles;
   }
 
+  private void scanForDeletes(BackupAgent backupAgent) {
+    try (Connection c = dbHandler.getConnection()) {
+      try (PreparedStatement s = c.prepareStatement("select f.filename from file f join file_version v on f.id=v.file_id where v.version=(select max(version) from file_version v2 where v2.file_id=f.id) and v.deleted=false")) {
+        try (ResultSet rs = s.executeQuery()) {
+          while (rs.next()) {
+            File file = new File(rs.getString(1));
+            if (file.exists() && file.isFile()) {
+              continue;
+            }
+
+            backupAgent.fileScanned(file);
+          }
+        }
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e); // TODO: vad gör vi här?
+    }
+  }
+
   public void scan(BackupAgent backupAgent, List<DirectoryConfiguration> directoryConfigurations, ExcludeRule... globalExcludeRules) {
     logger.info("Started scanning " + directoryConfigurations.size() + " configurations");
     backupAgent.fileScanStarted();
@@ -71,6 +100,8 @@ public class FileSystemScanner {
       foundFiles[0] += subFoundFiles[0];
       foundFiles[1] += subFoundFiles[1];
     }
+
+    scanForDeletes(backupAgent);
 
     logger.info("Finished scanning {} configurations, tagged {} of {} files in {}ms", directoryConfigurations.size(), foundFiles[1], foundFiles[0], System.currentTimeMillis() - t0);
     backupAgent.fileScanEnded();

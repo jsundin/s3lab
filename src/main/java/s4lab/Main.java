@@ -6,7 +6,6 @@ import s4lab.fs.DirectoryConfiguration;
 import s4lab.fs.FileSystemScanner;
 import s4lab.fs.rules.ExcludeHiddenFilesRule;
 import s4lab.fs.rules.ExcludeOldFilesRule;
-import s4lab.fs.rules.ExcludePathPrefixRule;
 import s4lab.fs.rules.ExcludeSymlinksRule;
 
 import java.io.File;
@@ -17,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
-  public static void main(String[] args) throws Exception {
+  public static void main_v1(String[] args) throws Exception {
     DbHandler dbHandler = new DbHandler();
     FileRepository fileRepository = new FileRepository(dbHandler);
 
@@ -44,9 +43,9 @@ public class Main {
     });
   }
 
-  public static void xmain(String[] args) throws Exception {
-    FileSystemScanner fs = new FileSystemScanner();
+  public static void main(String[] args) throws Exception {
     DbHandler dbHandler = new DbHandler();
+    FileSystemScanner fs = new FileSystemScanner(dbHandler);
     FileRepository fileRepository = new FileRepository(dbHandler);
 
     BackupAgent backupAgent = new BackupAgent(fileRepository);
@@ -56,6 +55,10 @@ public class Main {
 
     fs.scan(backupAgent,
             Arrays.asList(
+                new DirectoryConfiguration("/home/johdin/tmp/backuplab/")
+            ),
+/*
+            Arrays.asList(
                     //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new ExcludePathPrefixRule("/home/jsundin/tmp/filemontest/exclude"))
                     new DirectoryConfiguration("/home/jsundin/",
                             new ExcludePathPrefixRule("/home/jsundin/tmp/squash/"),
@@ -64,6 +67,7 @@ public class Main {
                             new ExcludePathPrefixRule("/home/jsundin/apps/")),
                     new DirectoryConfiguration("/aleska/video")
             ),
+*/
             new ExcludeOldFilesRule(latestModified),
             new ExcludeSymlinksRule(),
             new ExcludeHiddenFilesRule()

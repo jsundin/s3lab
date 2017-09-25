@@ -67,7 +67,7 @@ public class DbHandler {
 
   private Connection actualConnection;
 
-  Connection getConnection() throws SQLException {
+  public Connection getConnection() throws SQLException {
     if (actualConnection == null) {
       actualConnection = DriverManager.getConnection(jdbcUrl);
     }
