@@ -3,6 +3,10 @@
     {
       "directory": "/home/johdin/tmp/backuplab/",
       "rules": [
+        {
+          "rule": "excludePathSuffix",
+          "suffix": ".log"
+        }
       ],
       "retentionPolicy": "ignore"
     }

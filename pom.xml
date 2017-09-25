@@ -19,6 +19,7 @@
     <commons-io.version>2.5</commons-io.version>
     <commons-lang.version>2.6</commons-lang.version>
     <hsqldb.version>2.4.0</hsqldb.version>
+    <reflections.version>0.9.11</reflections.version>
   </properties>
 
   <dependencies>
@@ -67,14 +68,16 @@
       <artifactId>commons-lang</artifactId>
       <version>${commons-lang.version}</version>
     </dependency>
-
-    <!-- https://mvnrepository.com/artifact/org.hsqldb/hsqldb -->
     <dependency>
       <groupId>org.hsqldb</groupId>
       <artifactId>hsqldb</artifactId>
       <version>${hsqldb.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>${reflections.version}</version>
+    </dependency>
     <!--
     <dependency>
       <groupId>org.xerial</groupId>

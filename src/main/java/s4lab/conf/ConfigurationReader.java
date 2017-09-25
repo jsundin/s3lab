@@ -2,6 +2,14 @@ package s4lab.conf;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.BeanUtil;
+import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.MethodParameterNamesScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
 import s4lab.fs.DirectoryConfiguration;
 import s4lab.fs.rules.*;
 
@@ -9,13 +17,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author johdin
@@ -60,7 +68,65 @@ public class ConfigurationReader {
     return configuration;
   }
 
-  private ExcludeRule parseRule(Map<String, String> rule) throws ParseException {
+  private class RuleImpl {
+    Map<String, Method> properties;
+  }
+
+  private ExcludeRule parseRule(Map<String, String> ruleDef) throws ParseException {
+    if (!ruleDef.containsKey("rule")) {
+      throw new ParseException("Rule must have a type ('rule')", 0);
+    }
+    String rule = ruleDef.get("rule");
+
+    Map<String, RuleImpl> ruleImpls = new HashMap<>();
+    Reflections reflections = new Reflections(new ConfigurationBuilder()
+        .setScanners(new MethodAnnotationsScanner(), new TypeAnnotationsScanner(), new SubTypesScanner())
+        .setUrls(ClasspathHelper.forPackage(ExcludeRule.class.getPackage().getName()))
+    );
+    Set<Class<?>> ruleTypes = reflections.getTypesAnnotatedWith(Rule.class);
+    for (Class<?> ruleType : ruleTypes) {
+      Method[] methods = ruleType.getDeclaredMethods();
+      Rule
+
+      Map<String, Method> properties = new HashMap<>();
+      for (Method method : methods) {
+        RuleParam ruleParam = method.getAnnotation(RuleParam.class);
+        if (ruleParam == null) {
+          continue;
+        }
+
+        properties.put(ruleParam.value(), method);
+      }
+      ruleImpls.put()
+    }
+
+    /*Reflections reflections = new Reflections(ExcludeRule.class.getPackage().getName());
+    Set<Class<?>> types = reflections.getTypesAnnotatedWith(Rule.class);
+    for (Class<?> type : types) {
+      if (!ExcludeRule.class.isAssignableFrom(type)) {
+        continue;
+      }
+      Rule annotation = type.getDeclaredAnnotation(Rule.class);
+      if (annotation == null) {
+        continue;
+      }
+      if (!rule.equals(annotation.value())) {
+        continue;
+      }
+
+      //Reflections r = new Reflections(type);
+      Reflections r = new Reflections(new ConfigurationBuilder().setScanners(new MethodAnnotationsScanner()));
+      Constructor<?>[] c = type.getConstructors();
+
+      Set<Method> ruleParams = reflections.getMethodsAnnotatedWith(RuleParam.class);
+
+      System.out.println(annotation.value() + ", " + c[0] + ": " + ruleParams);
+    }*/
+
+    return new ExcludeSymlinksRule();
+  }
+
+  /*private ExcludeRule old_parseRule(Map<String, String> rule) throws ParseException {
     if (!rule.containsKey("rule")) {
       throw new ParseException("Rule must have a type ('rule')", 0);
     }
@@ -104,7 +170,7 @@ public class ConfigurationReader {
       default:
         throw new ParseException("Unknown rule '" + ruleName + "'", 0);
     }
-  }
+  }*/
 
   public static class InternalConf {
     private List<DirectoryConf> directories;
