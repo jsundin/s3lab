@@ -18,6 +18,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -69,7 +70,16 @@ public class ConfigurationReader {
   }
 
   private class RuleImpl {
-    Map<String, Method> properties;
+    Class<?> type;
+    Map<String, Method> properties = new HashMap<>();
+
+    @Override
+    public String toString() {
+      return "RuleImpl{" +
+          "type=" + type +
+          ", properties=" + properties +
+          '}';
+    }
   }
 
   private ExcludeRule parseRule(Map<String, String> ruleDef) throws ParseException {
@@ -85,19 +95,39 @@ public class ConfigurationReader {
     );
     Set<Class<?>> ruleTypes = reflections.getTypesAnnotatedWith(Rule.class);
     for (Class<?> ruleType : ruleTypes) {
-      Method[] methods = ruleType.getDeclaredMethods();
-      Rule
+      Rule ruleAnnotation = ruleType.getAnnotation(Rule.class);
+      if (ruleAnnotation == null) {
+        continue;
+      }
+      RuleImpl ruleImpl = new RuleImpl();
+      ruleImpl.type = ruleType;
 
-      Map<String, Method> properties = new HashMap<>();
+      Method[] methods = ruleType.getDeclaredMethods();
+
       for (Method method : methods) {
         RuleParam ruleParam = method.getAnnotation(RuleParam.class);
         if (ruleParam == null) {
           continue;
         }
 
-        properties.put(ruleParam.value(), method);
+        ruleImpl.properties.put(ruleParam.value(), method);
       }
-      ruleImpls.put()
+      ruleImpls.put(ruleAnnotation.value(), ruleImpl);
+    }
+
+    System.out.println(ruleImpls);
+    RuleImpl xx = ruleImpls.get("excludePathSuffix");
+    try {
+      Object inst = xx.type.newInstance();
+      System.out.println(inst.getClass() + " -- " + xx.type + " -- " + xx.properties.get("suffix").getDeclaringClass());
+      xx.properties.get("suffix").invoke(inst, "tjo");
+      System.out.println(xx);
+    } catch (InstantiationException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    } catch (InvocationTargetException e) {
+      e.printStackTrace();
     }
 
     /*Reflections reflections = new Reflections(ExcludeRule.class.getPackage().getName());
