@@ -3,7 +3,8 @@
     {
       "directory": "/home/johdin/tmp/backuplab/",
       "rules": [
-      ]
+      ],
+      "retentionPolicy": "ignore"
     }
   ],
   "globalRules": [

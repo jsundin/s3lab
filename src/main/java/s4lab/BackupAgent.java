@@ -8,6 +8,7 @@ import s4lab.db.FileRepository;
 import java.io.File;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -48,7 +49,7 @@ public class BackupAgent {
     }
   }
 
-  public void fileScanStarted() {
+  public void fileScanStarted() { // TODO: det här anropet skulle kunna vara blockande utifall något annat pågår som kan påverka
     fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.SCANNING_STARTED));
   }
 
@@ -56,8 +57,8 @@ public class BackupAgent {
     fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.SCANNING_ENDED));
   }
 
-  public void fileScanned(File file) {
-    fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.FILE_FOUND, file));
+  public void fileScanned(UUID directoryId, File file) {
+    fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.FILE_FOUND, directoryId, file));
   }
 
   private enum FileEventType {
@@ -69,24 +70,28 @@ public class BackupAgent {
 
   private static class FileEvent {
     private final FileEventType fileEventType;
+    private final UUID directoryId;
     private final File file;
 
     public FileEvent(FileEventType fileEventType) {
       this.fileEventType = fileEventType;
+      this.directoryId = null;
       this.file = null;
     }
 
-    public FileEvent(FileEventType fileEventType, File file) {
+    public FileEvent(FileEventType fileEventType, UUID directoryId, File file) {
       this.fileEventType = fileEventType;
+      this.directoryId = directoryId;
       this.file = file;
     }
 
     @Override
     public String toString() {
       return "FileEvent{" +
-              "fileEventType=" + fileEventType +
-              ", file=" + file +
-              '}';
+          "fileEventType=" + fileEventType +
+          ", directoryId=" + directoryId +
+          ", file=" + file +
+          '}';
     }
   }
 
@@ -132,7 +137,7 @@ public class BackupAgent {
             if (!scanning) {
               throw new IllegalStateException("FILE_FOUND when scanning=false");
             }
-            scanFile(fileEvent.file);
+            scanFile(fileEvent.directoryId, fileEvent.file);
             break;
 
           case FINISH:
@@ -144,7 +149,7 @@ public class BackupAgent {
       logger.info("FileScanResultThread finished, scanning={}, queueSize={}", scanning, fileScanQueue.size());
     }
 
-    private void scanFile(File file) {
+    private void scanFile(UUID directoryId, File file) {
       LocalDateTime lastModified = longToLDT(file.lastModified());
 
       try {
@@ -155,7 +160,7 @@ public class BackupAgent {
           fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, LocalDateTime.now(), true);
         } else if (savedVersion == null) {
           System.out.println("CREATE: " + file);
-          fileRepository.saveSimple(file);
+          fileRepository.saveSimple(directoryId, file);
         } else if (savedVersion.isDeleted() || !savedVersion.getModified().equals(lastModified)) {
           System.out.println("UPDATE: " + file);
           fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, lastModified, false);

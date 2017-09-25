@@ -4,14 +4,10 @@ import s4lab.conf.Configuration;
 import s4lab.conf.ConfigurationReader;
 import s4lab.db.DbHandler;
 import s4lab.db.FileRepository;
-import s4lab.fs.DirectoryConfiguration;
 import s4lab.fs.FileSystemScanner;
-import s4lab.fs.rules.ExcludeHiddenFilesRule;
 import s4lab.fs.rules.ExcludeOldFilesRule;
-import s4lab.fs.rules.ExcludeSymlinksRule;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 
 public class Main {
   public static void main(String[] args) throws Exception {
@@ -34,7 +30,7 @@ public class Main {
 
     LocalDateTime latestModified = fileRepository.findLatestModifiedFile();
 
-    fs.scan(backupAgent, config.getDirectoryConfigurations(), config.getGlobalExcludeRules(), new ExcludeOldFilesRule(latestModified));
+    fs.scan(backupAgent, config.getDirectoryConfigurations(), new ExcludeOldFilesRule(latestModified));
 /*
 
             Arrays.asList(

@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 import static s3lab.Utils.longToLDT;
@@ -19,13 +18,14 @@ public class FileRepository {
     this.dbHandler = dbHandler;
   }
 
-  public void saveSimple(File file) throws SQLException {
+  public void saveSimple(UUID directoryId, File file) throws SQLException {
     try (Connection conn = dbHandler.getConnection()) {
       String id = UUID.randomUUID().toString();
 
-      try (PreparedStatement stmt_file = conn.prepareStatement("insert into file(id, filename) values (?, ?)")) {
+      try (PreparedStatement stmt_file = conn.prepareStatement("insert into file(id, filename, directory_id) values (?, ?, ?)")) {
         stmt_file.setString(1, id);
         stmt_file.setString(2, file.toString());
+        stmt_file.setString(3, directoryId.toString());
         stmt_file.executeUpdate();
       }
 

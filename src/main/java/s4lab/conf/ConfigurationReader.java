@@ -38,10 +38,11 @@ public class ConfigurationReader {
 
   public Configuration readConfiguration(InputStream inputStream) throws IOException, ParseException {
     Configuration configuration = new Configuration();
+    List<ExcludeRule> globalExcludeRules = new ArrayList<>();
 
     InternalConf c = objectMapper.readValue(inputStream, InternalConf.class);
     for (Map<String, String> ruleDef : c.getGlobalRules()) {
-      configuration.getGlobalExcludeRules().add(parseRule(ruleDef));
+      globalExcludeRules.add(parseRule(ruleDef));
     }
     for (InternalConf.DirectoryConf directoryConf : c.getDirectories()) {
       List<ExcludeRule> localRules = new ArrayList<>();
@@ -51,6 +52,7 @@ public class ConfigurationReader {
         }
       }
 
+      localRules.addAll(globalExcludeRules);
       DirectoryConfiguration d = new DirectoryConfiguration(directoryConf.getDirectory(), localRules.toArray(new ExcludeRule[0]));
       configuration.getDirectoryConfigurations().add(d);
     }
@@ -135,6 +137,7 @@ public class ConfigurationReader {
     public static class DirectoryConf {
       private String directory;
       private List<Map<String, String>> rules;
+      private RetentionPolicy retentionPolicy;
 
       public String getDirectory() {
         return directory;
@@ -152,11 +155,20 @@ public class ConfigurationReader {
         this.rules = rules;
       }
 
+      public RetentionPolicy getRetentionPolicy() {
+        return retentionPolicy;
+      }
+
+      public void setRetentionPolicy(RetentionPolicy retentionPolicy) {
+        this.retentionPolicy = retentionPolicy;
+      }
+
       @Override
       public String toString() {
         return "DirectoryConf{" +
             "directory='" + directory + '\'' +
             ", rules=" + rules +
+            ", retentionPolicy=" + retentionPolicy +
             '}';
       }
     }
