@@ -1,0 +1,36 @@
+{
+  "directories": [
+    {
+      "directory": "/home/jsundin/",
+      "rules": [
+        {
+          "rule": "excludePathPrefix",
+          "prefix": "/home/jsundin/tmp/squash/"
+        },
+        {
+          "rule": "excludePathPrefix",
+          "prefix": "/home/jsundin/Android/"
+        },
+        {
+          "rule": "excludePathPrefix",
+          "prefix": "/home/jsundin/AndroidStudioProjects/"
+        },
+        {
+          "rule": "excludePathPrefix",
+          "prefix": "/home/jsundin/apps/"
+        }
+      ]
+    },
+    {
+      "directory": "/aleska/video/"
+    }
+  ],
+  "globalRules": [
+    {
+      "rule": "excludeSymlinks"
+    },
+    {
+      "rule": "excludeHiddenFiles"
+    }
+  ]
+}

@@ -1,25 +1,8 @@
 {
   "directories": [
     {
-      "directory": "/home/jsundin/tmp/filemontest/",
+      "directory": "/home/johdin/tmp/backuplab/",
       "rules": [
-        {
-          "rule": "excludePathPrefix",
-          "prefix": "/home/jsundin/tmp/filemontest/exclude/"
-        },
-        {
-          "rule": "excludePathSuffix",
-          "suffix": ".log"
-        }
-      ]
-    },
-    {
-      "directory": "/some/other/directory/",
-      "rules": [
-        {
-          "rule": "excludeFilenamePrefix",
-          "prefix": "db."
-        }
       ]
     }
   ],

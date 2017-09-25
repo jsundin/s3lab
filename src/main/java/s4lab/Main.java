@@ -1,5 +1,7 @@
 package s4lab;
 
+import s4lab.conf.Configuration;
+import s4lab.conf.ConfigurationReader;
 import s4lab.db.DbHandler;
 import s4lab.db.FileRepository;
 import s4lab.fs.DirectoryConfiguration;
@@ -13,7 +15,17 @@ import java.util.Arrays;
 
 public class Main {
   public static void main(String[] args) throws Exception {
+    new Main().run();
+  }
+
+  //private static final String CONFIG = "/config3.json";
+  private static final String CONFIG = "/config2.json";
+
+  public void run() throws Exception {
+    Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream(CONFIG));
+
     DbHandler dbHandler = new DbHandler();
+    dbHandler.start();
     FileSystemScanner fs = new FileSystemScanner(dbHandler);
     FileRepository fileRepository = new FileRepository(dbHandler);
 
@@ -22,10 +34,13 @@ public class Main {
 
     LocalDateTime latestModified = fileRepository.findLatestModifiedFile();
 
-    fs.scan(backupAgent,
+    fs.scan(backupAgent, config.getDirectoryConfigurations(), config.getGlobalExcludeRules(), new ExcludeOldFilesRule(latestModified));
+/*
+
             Arrays.asList(
                 new DirectoryConfiguration("/home/johdin/tmp/backuplab/")
             ),
+*/
 /*
             Arrays.asList(
                     //new DirectoryConfiguration("/home/jsundin/tmp/filemontest/", new ExcludePathPrefixRule("/home/jsundin/tmp/filemontest/exclude"))
@@ -36,15 +51,18 @@ public class Main {
                             new ExcludePathPrefixRule("/home/jsundin/apps/")),
                     new DirectoryConfiguration("/aleska/video")
             ),
-*/
+*//*
+
             new ExcludeOldFilesRule(latestModified),
             new ExcludeSymlinksRule(),
             new ExcludeHiddenFilesRule()
     );
+*/
 
-    //Thread.sleep(2000);
+    //Thread.sleep(2000000);
 
     backupAgent.finish();
+    dbHandler.finish();
   }
 /*
 

@@ -12,14 +12,23 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 
 public class DbHandler {
-  private String jdbcUrl = "jdbc:derby:files";
+  //private String jdbcUrl = "jdbc:derby:files";
+  private String jdbcUrl = "jdbc:hsqldb:file:/tmp/hdb/files";
+  private Connection actualConnection;
 
-  public void start() {
-
+  public void start() throws SQLException {
+    if (actualConnection != null) {
+      throw new IllegalStateException("DbHandler already started");
+    }
+    actualConnection = DriverManager.getConnection(jdbcUrl, "SA", "");
   }
 
-  public void finish() {
-
+  public void finish() throws SQLException {
+    if (actualConnection == null) {
+      throw new IllegalStateException("DbHandler not running");
+    }
+    actualConnection.close();
+    actualConnection = null;
   }
 
   public void dropDatabase() throws SQLException, IOException {
@@ -38,6 +47,7 @@ public class DbHandler {
           s.execute(sql);
         }
       }
+      c.commit();
     }
   }
 
@@ -59,18 +69,7 @@ public class DbHandler {
     }
   }
 
-  /*
-  Connection getConnection() throws SQLException {
-    return DriverManager.getConnection(jdbcUrl);
-  }
-  */
-
-  private Connection actualConnection;
-
   public Connection getConnection() throws SQLException {
-    if (actualConnection == null) {
-      actualConnection = DriverManager.getConnection(jdbcUrl);
-    }
     return new ConnectionProxy(actualConnection);
   }
 

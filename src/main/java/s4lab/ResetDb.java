@@ -11,6 +11,7 @@ public class ResetDb {
 
   public static void main(String[] args) throws Exception {
     DbHandler dbh = new DbHandler();
+    dbh.start();
     try {
       logger.info("Dropping old tables");
       dbh.dropDatabase();
@@ -20,5 +21,7 @@ public class ResetDb {
 
     logger.info("Creating database");
     dbh.createDatabase();
+
+    dbh.finish();
   }
 }

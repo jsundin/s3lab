@@ -79,6 +79,7 @@ public class FileRepository {
         stmt.setBoolean(5, deleted);
         stmt.executeUpdate();
       }
+      conn.commit();
     }
   }
 

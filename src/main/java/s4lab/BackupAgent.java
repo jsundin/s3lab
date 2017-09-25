@@ -39,7 +39,13 @@ public class BackupAgent {
       throw new IllegalStateException("BackupAgent not running");
     }
     baThread.looper.finish();
-    fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.SHUTDOWN));
+    fileScanResultThread.fileScanQueue.add(new FileEvent(FileEventType.FINISH));
+    try {
+      fileScanResultThread.join();
+      baThread.join();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 
   public void fileScanStarted() {
@@ -58,7 +64,7 @@ public class BackupAgent {
     SCANNING_STARTED,
     FILE_FOUND,
     SCANNING_ENDED,
-    SHUTDOWN
+    FINISH
   }
 
   private static class FileEvent {
@@ -129,8 +135,8 @@ public class BackupAgent {
             scanFile(fileEvent.file);
             break;
 
-          case SHUTDOWN:
-            logger.info("Received SHUTDOWN, scanning={}", scanning);
+          case FINISH:
+            logger.info("Received FINISH, scanning={}", scanning);
             finished = true;
             break;
         }

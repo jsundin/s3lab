@@ -1,7 +1,6 @@
 package s4lab.fs;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.BackupAgent;
@@ -14,6 +13,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FileSystemScanner {
@@ -72,7 +73,7 @@ public class FileSystemScanner {
     }
   }
 
-  public void scan(BackupAgent backupAgent, List<DirectoryConfiguration> directoryConfigurations, ExcludeRule... globalExcludeRules) {
+  public void scan(BackupAgent backupAgent, List<DirectoryConfiguration> directoryConfigurations, List<ExcludeRule> globalExcludeRules, ExcludeRule... systemExcludeRules) {
     logger.info("Started scanning " + directoryConfigurations.size() + " configurations");
     backupAgent.fileScanStarted();
     long t0 = System.currentTimeMillis();
@@ -95,7 +96,9 @@ public class FileSystemScanner {
         }
       } catch (IOException ignored) {}
 
-      ExcludeRule[] mergedRules = (ExcludeRule[]) ArrayUtils.addAll(directoryConfiguration.getExcludeRules(), globalExcludeRules);
+      ArrayList<ExcludeRule> mergedRules = new ArrayList<>(Arrays.asList(systemExcludeRules));
+      mergedRules.addAll(directoryConfiguration.getExcludeRules());
+      mergedRules.addAll(globalExcludeRules);
       int[] subFoundFiles = scan(backupAgent, directory, new ExcludingFileFilter(mergedRules));
       foundFiles[0] += subFoundFiles[0];
       foundFiles[1] += subFoundFiles[1];
@@ -112,9 +115,9 @@ public class FileSystemScanner {
   }
 
   private class ExcludingFileFilter implements FileFilter {
-    private final ExcludeRule[] excludeRules;
+    private final List<ExcludeRule> excludeRules;
 
-    public ExcludingFileFilter(ExcludeRule[] excludeRules) {
+    public ExcludingFileFilter(List<ExcludeRule> excludeRules) {
       this.excludeRules = excludeRules;
     }
 
