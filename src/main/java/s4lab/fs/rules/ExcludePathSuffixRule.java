@@ -13,7 +13,7 @@ public class ExcludePathSuffixRule implements ExcludeRule {
     return suffix;
   }
 
-  @RuleParam("suffix")
+  @RuleParam(value = "suffix", required = true)
   public void setSuffix(String suffix) {
     this.suffix = suffix;
   }
