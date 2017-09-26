@@ -20,6 +20,7 @@
     <commons-lang.version>2.6</commons-lang.version>
     <hsqldb.version>2.4.0</hsqldb.version>
     <reflections.version>0.9.11</reflections.version>
+    <bouncycastle.version>1.58</bouncycastle.version>
   </properties>
 
   <dependencies>
@@ -77,6 +78,11 @@
       <groupId>org.reflections</groupId>
       <artifactId>reflections</artifactId>
       <version>${reflections.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>${bouncycastle.version}</version>
     </dependency>
     <!--
     <dependency>
