@@ -14,11 +14,11 @@ import java.util.Base64;
  * @since 2017-09-26
  */
 public class Crypt {
-  private static final String SALT = "abc123";
-  private static final int ITERATIONS = 6000;
-  private static final int KEY_LENGTH = 128;
-  public static final String CIPHER = "AES/CFB" + KEY_LENGTH + "/PKCS5Padding";
-  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  static final String SALT = "abc123";
+  static final int ITERATIONS = 6000;
+  static final int KEY_LENGTH = 128;
+  static final String CIPHER = "AES/CFB" + KEY_LENGTH + "/PKCS5Padding";
+  static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   public static void main(String[] args) throws Exception {
     Security.insertProviderAt(new BouncyCastleProvider(), 1);
@@ -64,10 +64,14 @@ public class Crypt {
     return factory.generateSecret(spec);
   }
 
+  static Cipher getCipher(String cipherInstance) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+    return Cipher.getInstance(cipherInstance, "BC");
+  }
+
   static byte[] encrypt(String cipherInstance, Key secret, byte[] iv, byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, NoSuchProviderException {
     IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
 
-    Cipher cipher = Cipher.getInstance(cipherInstance, "BC");
+    Cipher cipher = getCipher(cipherInstance);
     cipher.init(Cipher.ENCRYPT_MODE, secret, ivParameterSpec);
     return cipher.doFinal(data);
   }
@@ -105,7 +109,7 @@ public class Crypt {
   static byte[] decrypt(String cipherInstance, Key secret, byte[] iv, byte[] data) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, NoSuchProviderException {
     IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
 
-    Cipher cipher = Cipher.getInstance(cipherInstance, "BC");
+    Cipher cipher = getCipher(cipherInstance);
     cipher.init(Cipher.DECRYPT_MODE, secret, ivParameterSpec);
     return cipher.doFinal(data);
   }
