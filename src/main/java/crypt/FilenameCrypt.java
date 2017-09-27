@@ -28,48 +28,41 @@ public class FilenameCrypt {
     Crypt.SECURE_RANDOM.nextBytes(iv);
 
     test("a", key, iv);
-    test("aa", key, iv);
+    test("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", key, iv);
     test("xy", key, iv);
     test("FilenameCrypt.java", key, iv);
     test("a really really long filename, probably the longest filename you will ever encounter.. if you are lucky, that is..", key, iv);
   }
 
   static void test(String fn, Key key, byte[] iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
-    for (CompressionStrategy cs : CompressionStrategy.values()) {
-      String efn = encryptFilename(fn, key, iv, cs);
-      String dfn = decryptFilename(efn, key, iv, cs);
-      System.out.println(cs + ": " + fn.length() + " -> " + efn.length());
-    }
+    String efn = encryptFilename(fn, key, iv);
+    String dfn = decryptFilename(efn, key);
+    System.out.println(fn + ": " + fn.length() + " -> " + efn.length() + "  [" + efn + "]");
     System.out.println();
   }
 
-  enum CompressionStrategy {
-    BEFORE,
-    AFTER,
-    NOT_AT_ALL
-  }
-
-  static String encryptFilename(String filename, Key key, byte[] iv, CompressionStrategy cs) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidKeyException, IOException {
+  static String encryptFilename(String filename, Key key, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidKeyException, IOException {
     byte[] x = padString(filename);
-    if (CompressionStrategy.BEFORE.equals(cs)) {
-      x = compress(x);
-    }
+    x = compress(x);
     x = Crypt.encrypt(Crypt.CIPHER, key, iv, x);
-    if (CompressionStrategy.AFTER.equals(cs)) {
-      x = compress(x);
-    }
-    return Base64.getEncoder().encodeToString(x);
+    byte[] toEncode = new byte[iv.length + x.length + 1];
+    toEncode[0] = (byte) iv.length;
+    System.arraycopy(iv, 0, toEncode, 1, iv.length);
+    System.arraycopy(x, 0, toEncode, 1 + iv.length, x.length);
+    String encoded = Base64.getEncoder().encodeToString(toEncode);
+    return encoded.replaceAll("=", ".");
   }
 
-  static String decryptFilename(String encryptedFilename, Key key, byte[] iv, CompressionStrategy cs) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidKeyException, IOException {
-    byte[] x = Base64.getDecoder().decode(encryptedFilename);
-    if (CompressionStrategy.AFTER.equals(cs)) {
-      x = decompress(x);
-    }
+  static String decryptFilename(String encryptedFilename, Key key) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidKeyException, IOException {
+    byte[] y = Base64.getDecoder().decode(encryptedFilename.replaceAll("\\.", "="));
+    int ivSize = y[0];
+    byte[] iv = new byte[ivSize];
+    System.arraycopy(y, 1, iv, 0, iv.length);
+    byte[] x = new byte[y.length - ivSize - 1];
+    System.arraycopy(y, 1 + iv.length, x, 0, x.length);
+
     x = Crypt.decrypt(Crypt.CIPHER, key, iv, x);
-    if (CompressionStrategy.BEFORE.equals(cs)) {
-      x = decompress(x);
-    }
+    x = decompress(x);
     return depadString(x);
   }
 
