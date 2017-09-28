@@ -24,14 +24,25 @@ public class FilenameCrypt {
     Security.insertProviderAt(new BouncyCastleProvider(), 1);
 
     Key key = Crypt.makeKey("abc123");
-    byte[] iv = new byte[Crypt.KEY_LENGTH / 8];
-    Crypt.SECURE_RANDOM.nextBytes(iv);
+    int ivl = Crypt.KEY_LENGTH / 8;
 
-    test("a", key, iv);
-    test("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", key, iv);
-    test("xy", key, iv);
-    test("FilenameCrypt.java", key, iv);
-    test("a really really long filename, probably the longest filename you will ever encounter.. if you are lucky, that is..", key, iv);
+    test("a", key, getIV(ivl));
+    test("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", key, getIV(ivl));
+    test("xy", key, getIV(ivl));
+    test("FilenameCrypt.java", key, getIV(ivl));
+    test("a really really long filename, probably the longest filename you will ever encounter.. if you are lucky, that is..", key, getIV(ivl));
+  }
+
+  private static byte[] static_iv;
+  static byte[] getIV(int bytes) {
+    /*if (static_iv == null) {
+      static_iv = new byte[bytes];
+      Crypt.SECURE_RANDOM.nextBytes(static_iv);
+    }
+    return static_iv;*/
+    byte[] iv = new byte[bytes];
+    Crypt.SECURE_RANDOM.nextBytes(iv);
+    return iv;
   }
 
   static void test(String fn, Key key, byte[] iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
@@ -42,7 +53,8 @@ public class FilenameCrypt {
   }
 
   static String encryptFilename(String filename, Key key, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidKeyException, IOException {
-    byte[] x = padString(filename);
+    //byte[] x = padString(filename);
+    byte[] x = filename.getBytes();
     x = compress(x);
     x = Crypt.encrypt(Crypt.CIPHER, key, iv, x);
     byte[] toEncode = new byte[iv.length + x.length + 1];
@@ -63,19 +75,24 @@ public class FilenameCrypt {
 
     x = Crypt.decrypt(Crypt.CIPHER, key, iv, x);
     x = decompress(x);
-    return depadString(x);
+    return new String(x);
+    //return depadString(x);
   }
 
   static byte[] compress(byte[] data) throws IOException {
+/*
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     GZIPOutputStream gos = new GZIPOutputStream(baos);
     gos.write(data);
     gos.close();
     baos.close();
     return baos.toByteArray();
+*/
+    return data;
   }
 
   static byte[] decompress(byte[] data) throws IOException {
+/*
     ByteArrayInputStream bais = new ByteArrayInputStream(data);
     GZIPInputStream gis = new GZIPInputStream(bais);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -90,6 +107,8 @@ public class FilenameCrypt {
     baos.close();
 
     return baos.toByteArray();
+*/
+    return data;
   }
 
   static byte[] padString(String filename) {
