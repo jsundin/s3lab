@@ -14,6 +14,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -138,6 +140,7 @@ public class FileSystemScanner {
             s.setString(2, cd.getConfiguration().getDirectory());
             s.setString(3, cd.getRetentionPolicy() == null ? null : cd.getRetentionPolicy().toString());
             s.executeUpdate();
+            configuredDirectories.put(cd.getConfiguration().getDirectory(), cd);
           }
         }
       } catch (SQLException e) {
@@ -155,7 +158,9 @@ public class FileSystemScanner {
   }
 
   public void scan(BackupAgent backupAgent, List<DirectoryConfiguration> directoryConfigurations, ExcludeRule... systemExcludeRules) {
-    logger.info("Started scanning " + directoryConfigurations.size() + " configurations");
+    ZonedDateTime scanTime = ZonedDateTime.now();
+
+    logger.info("Started scanning {} configurations at {}", directoryConfigurations.size(), scanTime);
     backupAgent.fileScanStarted();
     Collection<ConfiguredDirectory> configuredDirectories = scanConfiguredDirectories(directoryConfigurations);
     long t0 = System.currentTimeMillis();
@@ -193,6 +198,7 @@ public class FileSystemScanner {
     scanForDeletes(backupAgent, configuredDirectories);
 
     logger.info("Finished scanning {} configurations, tagged {} of {} files in {}ms", directoryConfigurations.size(), foundFiles[1], foundFiles[0], System.currentTimeMillis() - t0);
+    dbHandler.setStateInformationLastScan(scanTime);
     backupAgent.fileScanEnded();
   }
 

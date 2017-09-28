@@ -2,13 +2,14 @@ package s4lab.db;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import s4lab.TimeUtils;
 
 import java.io.File;
 import java.sql.*;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.UUID;
-
-import static s3lab.Utils.longToLDT;
 
 public class FileRepository {
   private Logger logger = LoggerFactory.getLogger(getClass());
@@ -29,12 +30,11 @@ public class FileRepository {
         stmt_file.executeUpdate();
       }
 
-      try (PreparedStatement stmt_version = conn.prepareStatement("insert into file_version(id, file_id, version, modified, deleted) values (?, ?, ?, ?, ?)")) {
-        stmt_version.setString(1, UUID.randomUUID().toString());
-        stmt_version.setString(2, id);
-        stmt_version.setInt(3, 0);
-        stmt_version.setTimestamp(4, Timestamp.valueOf(longToLDT(file.lastModified())));
-        stmt_version.setBoolean(5, false);
+      try (PreparedStatement stmt_version = conn.prepareStatement("insert into file_version(file_id, version, modified, deleted) values (?, ?, ?, ?)")) {
+        stmt_version.setString(1, id);
+        stmt_version.setInt(2, 0);
+        stmt_version.setTimestamp(3, TimeUtils.at(file.lastModified()).toTimestamp(ZoneOffset.UTC));
+        stmt_version.setBoolean(4, false);
         stmt_version.executeUpdate();
       }
     }
@@ -61,7 +61,7 @@ public class FileRepository {
           fav.setId(_id);
           fav.setFilename(_filename);
           fav.setVersion(_version);
-          fav.setModified(_modified.toLocalDateTime());
+          fav.setModified(TimeUtils.at(_modified, ZoneOffset.UTC).toZonedDateTime(ZoneId.systemDefault()));
           fav.setDeleted(_deleted);
           return fav;
         }
@@ -69,34 +69,16 @@ public class FileRepository {
     }
   }
 
-  public void saveNewVersion(String fileId, int version, LocalDateTime modified, boolean deleted) throws SQLException {
+  public void saveNewVersion(String fileId, int version, ZonedDateTime modified, boolean deleted) throws SQLException {
     try (Connection conn = dbHandler.getConnection()) {
-      try (PreparedStatement stmt = conn.prepareStatement("insert into file_version (id, file_id, version, modified, deleted) values (?, ?, ?, ?, ?)")) {
-        stmt.setString(1, UUID.randomUUID().toString());
-        stmt.setString(2, fileId);
-        stmt.setInt(3, version);
-        stmt.setTimestamp(4, Timestamp.valueOf(modified));
-        stmt.setBoolean(5, deleted);
+      try (PreparedStatement stmt = conn.prepareStatement("insert into file_version (file_id, version, modified, deleted) values (?, ?, ?, ?)")) {
+        stmt.setString(1, fileId);
+        stmt.setInt(2, version);
+        stmt.setTimestamp(3, TimeUtils.at(modified).toTimestamp(ZoneOffset.UTC));
+        stmt.setBoolean(4, deleted);
         stmt.executeUpdate();
       }
       conn.commit();
-    }
-  }
-
-  public LocalDateTime findLatestModifiedFile() throws SQLException {
-    try (Connection conn = dbHandler.getConnection()) {
-      try (PreparedStatement stmt = conn.prepareStatement("select max(modified) from file_version")) {
-        try (ResultSet rs = stmt.executeQuery()) {
-          if (!rs.next()) {
-            return null;
-          }
-          Timestamp timestamp = rs.getTimestamp(1);
-          if (rs.next()) {
-            throw new RuntimeException("Got too many results");
-          }
-          return timestamp == null ? null : timestamp.toLocalDateTime();
-        }
-      }
     }
   }
 
@@ -104,7 +86,7 @@ public class FileRepository {
     private String id;
     private String filename;
     private int version;
-    private LocalDateTime modified;
+    private ZonedDateTime modified;
     private boolean deleted;
 
     public String getId() {
@@ -131,11 +113,11 @@ public class FileRepository {
       this.version = version;
     }
 
-    public LocalDateTime getModified() {
+    public ZonedDateTime getModified() {
       return modified;
     }
 
-    public void setModified(LocalDateTime modified) {
+    public void setModified(ZonedDateTime modified) {
       this.modified = modified;
     }
 

@@ -9,6 +9,10 @@
         },
         {
           "rule": "excludePathPrefix",
+          "prefix": "/home/jsundin/tmp/"
+        },
+        {
+          "rule": "excludePathPrefix",
           "prefix": "/home/jsundin/Android/"
         },
         {

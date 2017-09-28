@@ -1,7 +1,7 @@
 {
   "directories": [
     {
-      "directory": "/home/johdin/tmp/backuplab/",
+      "directory": "/home/jsundin/tmp/backuplab/",
       "rules": [
         {
           "rule": "excludePathSuffix",

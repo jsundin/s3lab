@@ -6,8 +6,10 @@ import s4lab.db.DbHandler;
 import s4lab.db.FileRepository;
 import s4lab.fs.FileSystemScanner;
 import s4lab.fs.rules.ExcludeOldFilesRule;
+import s4lab.fs.rules.ExcludeRule;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public class Main {
   public static void main(String[] args) throws Exception {
@@ -28,9 +30,12 @@ public class Main {
     BackupAgent backupAgent = new BackupAgent(fileRepository);
     backupAgent.start();
 
-    LocalDateTime latestModified = fileRepository.findLatestModifiedFile();
-
-    fs.scan(backupAgent, config.getDirectoryConfigurations(), new ExcludeOldFilesRule(latestModified));
+    ZonedDateTime lastScan = dbHandler.readStateInformation().getLastScan();
+    ExcludeRule[] systemExcludeRules = new ExcludeRule[lastScan == null ? 0 : 1];
+    if (lastScan != null) {
+      systemExcludeRules[0] = new ExcludeOldFilesRule(lastScan);
+    }
+    fs.scan(backupAgent, config.getDirectoryConfigurations(), systemExcludeRules);
 /*
 
             Arrays.asList(

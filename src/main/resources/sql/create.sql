@@ -16,16 +16,23 @@ create table file (
 );
 
 create table file_version (
-    id varchar(40),
     file_id varchar(40) not null,
     version integer,
     modified timestamp,
     deleted boolean,
 
-    primary key (id),
-    foreign key (file_id) references file (id),
-    unique (file_id, version)
+    primary key (file_id, version),
+    foreign key (file_id) references file (id)
+);
+
+create table state (
+    id integer,
+    last_scan timestamp,
+
+    primary key (id)
 );
 
 create index file_version_version on file_version (version);
 create index file_version_modified on file_version (modified);
+
+insert into state (id, last_scan) values (1, null);

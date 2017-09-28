@@ -1,5 +1,6 @@
 package s4lab.fs.rules;
 
+import s4lab.TimeUtils;
 import s4lab.conf.Rule;
 import s4lab.conf.RuleParam;
 import s4lab.conf.Settings;
@@ -7,22 +8,20 @@ import s4lab.conf.Settings;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-
-import static s3lab.Utils.longToLDT;
+import java.time.ZonedDateTime;
 
 @Rule("excludeOldFiles")
 public class ExcludeOldFilesRule implements ExcludeRule {
-  private LocalDateTime cutoff;
+  private ZonedDateTime cutoff;
 
   public ExcludeOldFilesRule() {
   }
 
-  public ExcludeOldFilesRule(LocalDateTime cutoff) {
-    this.cutoff = cutoff;
+  public ExcludeOldFilesRule(ZonedDateTime cutoff) {
+    setCutoff(cutoff);
   }
 
-  public LocalDateTime getCutoff() {
+  public ZonedDateTime getCutoff() {
     return cutoff;
   }
 
@@ -31,7 +30,7 @@ public class ExcludeOldFilesRule implements ExcludeRule {
     new SimpleDateFormat(Settings.TIMESTAMP_FORMAT).parse(cutoff);
   }
 
-  public void setCutoff(LocalDateTime cutoff) {
+  public void setCutoff(ZonedDateTime cutoff) {
     this.cutoff = cutoff;
   }
 
@@ -40,7 +39,7 @@ public class ExcludeOldFilesRule implements ExcludeRule {
     if (!f.isFile() || cutoff == null) {
       return false;
     }
-    LocalDateTime lastModified = longToLDT(f.lastModified());
+    ZonedDateTime lastModified = TimeUtils.at(f.lastModified()).toZonedDateTime();
     return lastModified.isBefore(cutoff) || lastModified.equals(cutoff);
   }
 }

@@ -7,12 +7,10 @@ import s4lab.db.FileRepository;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import static s3lab.Utils.longToLDT;
 
 public class BackupAgent {
   private static final Logger logger = LoggerFactory.getLogger(BackupAgent.class);
@@ -150,14 +148,17 @@ public class BackupAgent {
     }
 
     private void scanFile(UUID directoryId, File file) {
-      LocalDateTime lastModified = longToLDT(file.lastModified());
+      ZonedDateTime lastModified = null;
+      if (file.exists()) {
+        lastModified = TimeUtils.at(file.lastModified()).toZonedDateTime();
+      }
 
       try {
         FileRepository.tmpFileAndVersion savedVersion = fileRepository.getLatestVersionOByFilename(file.toString());
 
         if (!file.exists() && savedVersion != null) {
           System.out.println("DELETE: " + file);
-          fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, LocalDateTime.now(), true);
+          fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, ZonedDateTime.now(), true);
         } else if (savedVersion == null) {
           System.out.println("CREATE: " + file);
           fileRepository.saveSimple(directoryId, file);
@@ -165,7 +166,7 @@ public class BackupAgent {
           System.out.println("UPDATE: " + file);
           fileRepository.saveNewVersion(savedVersion.getId(), savedVersion.getVersion() + 1, lastModified, false);
         } else {
-          logger.error("Got a file notification for '" + file + "' that doesn't seem to have changed?");
+          logger.warn("Got a file notification for '" + file + "' that doesn't seem to have changed?");
         }
       } catch (SQLException e1) {
         e1.printStackTrace();
