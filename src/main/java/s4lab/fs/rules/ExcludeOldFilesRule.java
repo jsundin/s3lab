@@ -1,6 +1,6 @@
 package s4lab.fs.rules;
 
-import s4lab.Utils;
+import s4lab.FileTools;
 import s4lab.conf.Rule;
 import s4lab.conf.RuleParam;
 import s4lab.conf.Settings;
@@ -39,7 +39,7 @@ public class ExcludeOldFilesRule implements ExcludeRule {
     if (!f.isFile() || cutoff == null) {
       return false;
     }
-    ZonedDateTime lastModified = Utils.lastModified(f);
+    ZonedDateTime lastModified = FileTools.lastModified(f);
     return lastModified.isBefore(cutoff) || lastModified.equals(cutoff);
   }
 }

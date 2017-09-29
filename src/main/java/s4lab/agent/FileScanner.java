@@ -2,7 +2,7 @@ package s4lab.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.Utils;
+import s4lab.FileTools;
 import s4lab.conf.RetentionPolicy;
 import s4lab.db.DatabaseException;
 import s4lab.db.DbHandler;
@@ -129,7 +129,7 @@ public class FileScanner {
 
     if (fileVersion == null) {
       UUID fileId = UUID.randomUUID();
-      ZonedDateTime lastModified = Utils.lastModified(file);
+      ZonedDateTime lastModified = FileTools.lastModified(file);
 
       insertFile(fileId, file, configuredDirectory.id);
       insertFileVersion(fileId, 0, lastModified, false);
@@ -137,7 +137,7 @@ public class FileScanner {
       if (!file.exists()) {
         insertFileVersion(fileVersion.id, fileVersion.version + 1, ZonedDateTime.now(), true);
       } else {
-        ZonedDateTime lastModified = Utils.lastModified(file);
+        ZonedDateTime lastModified = FileTools.lastModified(file);
         if (!fileVersion.modified.equals(lastModified)) {
           insertFileVersion(fileVersion.id, fileVersion.version + 1, lastModified, false);
         }
