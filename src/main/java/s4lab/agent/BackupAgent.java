@@ -7,7 +7,6 @@ import s4lab.conf.Configuration;
 import s4lab.conf.ConfigurationReader;
 import s4lab.conf.Settings;
 import s4lab.db.DbHandler;
-import s4lab.target.BackupTarget;
 import s4lab.target.DevNullBackupTarget;
 
 import java.io.File;
@@ -49,9 +48,9 @@ public class BackupAgent {
     Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config3.json"));
 
     //BackupTarget backupTarget = new LocalDirectoryBackupTarget(dbh, new File("/tmp/backuptarget"));
-    BackupTarget backupTarget = new DevNullBackupTarget(dbh, 10);
+    DevNullBackupTarget backupTarget = new DevNullBackupTarget(dbh, 1);
 
-    FileUploadManager fileUploadManager = new FileUploadManager(dbh, 20, backupTarget);
+    FileUploadManager fileUploadManager = new FileUploadManager(dbh, 2, backupTarget);
     fileUploadManager.start();
 
     new FileScanner(dbh).scan(config.getDirectoryConfigurations(), false);
@@ -61,5 +60,6 @@ public class BackupAgent {
     dbh.finish();
 
     logger.info("BackupAgent finished in {}ms", (System.currentTimeMillis() - t0));
+    logger.info("/dev/null-stats: {} files and a total of {}mb", backupTarget.getTotalFiles(), backupTarget.getTotalSize() / (1024 * 1024));
   }
 }

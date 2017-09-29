@@ -32,6 +32,8 @@ public class FileUploadManager {
     // ponera att vi har en fil som misslyckades i förra körningen, koden nedan gör att den får upload_state=null
     // om den filen sedan ändrats mellan förra körningen och nu, så kan den förra köas innan den nya hittas
     // .. sedan om den nya körs parallellt så har vi problem
+    //
+    // vi KAN lösa det här genom att låta filescannern gå klart innan vi kör igång filemanagern
     int requeuedFiles = dbHandler.buildQuery("update file_version set upload_state=null where upload_state<>?")
             .withParam().stringValue(1, FileUploadState.FINISHED.toString())
             .executeUpdate();
