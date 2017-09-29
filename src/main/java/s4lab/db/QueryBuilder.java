@@ -20,7 +20,7 @@ public class QueryBuilder {
     this.connection = connection;
   }
 
-  private void close() {
+  public void abort() {
     try {
       if (!statement.isClosed()) {
         statement.close();
@@ -44,7 +44,7 @@ public class QueryBuilder {
       statementWrapper = new PreparedStatementWrapper(statement);
       return this;
     } catch (Throwable t) {
-      close();
+      abort();
       throw new DatabaseException(t);
     }
   }
@@ -62,8 +62,9 @@ public class QueryBuilder {
       }
       return results;
     } catch (Throwable t) {
-      close();
       throw new DatabaseException(t);
+    } finally {
+      abort();
     }
   }
 
@@ -81,7 +82,7 @@ public class QueryBuilder {
     } catch (Throwable t) {
       throw new DatabaseException(t);
     } finally {
-      close();
+      abort();
     }
   }
 
@@ -91,7 +92,7 @@ public class QueryBuilder {
     } catch (Throwable t) {
       throw new DatabaseException(t);
     } finally {
-      close();
+      abort();
     }
   }
 
@@ -106,7 +107,7 @@ public class QueryBuilder {
     } catch (Throwable t) {
       throw new DatabaseException(t);
     } finally {
-      close();
+      abort();
     }
   }
 

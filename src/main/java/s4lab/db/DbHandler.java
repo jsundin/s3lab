@@ -1,11 +1,12 @@
 package s4lab.db;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.ZonedDateTime;
@@ -14,22 +15,32 @@ import java.util.List;
 
 public class DbHandler {
   private String jdbcUrl = "jdbc:derby:files;create=true";
+  private String poolSize = "1-10";
   //private String jdbcUrl = "jdbc:hsqldb:file:/tmp/hdb/files";
-  private Connection actualConnection;
+  private HikariDataSource ds;
 
   public void start() throws SQLException {
-    if (actualConnection != null) {
-      throw new IllegalStateException("DbHandler already started");
+    int[] poolSz;
+    if (poolSize.contains("-")) {
+      String[] strPoolSz = poolSize.split("-");
+      poolSz = new int[]{
+              Integer.parseInt(strPoolSz[0]),
+              Integer.parseInt(strPoolSz[1])
+      };
+    } else {
+      poolSz = new int[]{Integer.parseInt(poolSize)};
     }
-    actualConnection = DriverManager.getConnection(jdbcUrl);//, "SA", "");
+
+    ds = new HikariDataSource();
+    ds.setJdbcUrl(jdbcUrl);
+    ds.setMaximumPoolSize(poolSz.length == 1 ? poolSz[0] : poolSz[1]);
+    if (poolSz.length == 2) {
+      ds.setMinimumIdle(poolSz[0]);
+    }
   }
 
   public void finish() throws SQLException {
-    if (actualConnection == null) {
-      throw new IllegalStateException("DbHandler not running");
-    }
-    actualConnection.close();
-    actualConnection = null;
+    ds.close();
   }
 
   public void dropDatabase() throws SQLException, IOException {
@@ -71,7 +82,8 @@ public class DbHandler {
   }
 
   public Connection getConnection() throws SQLException {
-    return new ConnectionProxy(actualConnection);
+    //return new ConnectionProxy(actualConnection);
+    return ds.getConnection();
   }
 
   public QueryBuilder buildQuery(String sql) {
@@ -114,5 +126,22 @@ public class DbHandler {
     public void setLastScan(ZonedDateTime lastScan) {
       this.lastScan = lastScan;
     }
+  }
+
+  public static void main(String[] args) throws Exception {
+    DbHandler dbh = new DbHandler();
+    dbh.start();
+
+    System.out.println("query finished");
+    Connection c1 = dbh.getConnection();
+    //c1.close();
+    System.out.println("got c1");
+    Connection c2 = dbh.getConnection();
+    System.out.println("got c2");
+
+    c1.createStatement().execute("select * from file");
+    c2.createStatement().execute("select * from file");
+
+    dbh.finish();
   }
 }
