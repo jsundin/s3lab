@@ -21,6 +21,7 @@ create table file_version (
     version integer,
     modified timestamp,
     deleted boolean,
+    upload_state varchar(16),
 
     primary key (file_id, version),
     foreign key (file_id) references file (id)

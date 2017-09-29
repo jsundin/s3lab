@@ -2,9 +2,7 @@ package s4lab.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.TimeUtils;
-import s4lab.conf.Configuration;
-import s4lab.conf.ConfigurationReader;
+import s4lab.Utils;
 import s4lab.conf.RetentionPolicy;
 import s4lab.db.DatabaseException;
 import s4lab.db.DbHandler;
@@ -131,20 +129,17 @@ public class FileScanner {
 
     if (fileVersion == null) {
       UUID fileId = UUID.randomUUID();
-      ZonedDateTime lastModified = TimeUtils.at(file.lastModified()).toZonedDateTime();
+      ZonedDateTime lastModified = Utils.lastModified(file);
 
       insertFile(fileId, file, configuredDirectory.id);
       insertFileVersion(fileId, 0, lastModified, false);
-      System.out.println("CREATE: " + file);
     } else {
       if (!file.exists()) {
         insertFileVersion(fileVersion.id, fileVersion.version + 1, ZonedDateTime.now(), true);
-        System.out.println("DELETE: " + file);
       } else {
-        ZonedDateTime lastModified = TimeUtils.at(file.lastModified()).toZonedDateTime();
+        ZonedDateTime lastModified = Utils.lastModified(file);
         if (!fileVersion.modified.equals(lastModified)) {
           insertFileVersion(fileVersion.id, fileVersion.version + 1, lastModified, false);
-          System.out.println("UPDATE: " + file);
         }
       }
     }
@@ -335,21 +330,6 @@ public class FileScanner {
         }
       }
       return true;
-    }
-  }
-
-  public static void main(String[] args) throws Exception {
-    new Runner().run();
-  }
-
-  public static class Runner {
-    public void run() throws Exception {
-      DbHandler dbh = new DbHandler();
-      dbh.start();
-      Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config3.json"));
-
-      new FileScanner(dbh).scan(config.getDirectoryConfigurations(), false);
-      dbh.finish();
     }
   }
 }

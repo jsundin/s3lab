@@ -1,5 +1,6 @@
 package s4lab;
 
+import java.nio.file.attribute.FileTime;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -46,6 +47,14 @@ public class TimeUtils {
 
   public static TimeUtils at(ZonedDateTime zdt, ZoneId zoneId) {
     return new TimeUtils(zdt.withZoneSameLocal(zoneId));
+  }
+
+  public static TimeUtils at(FileTime fileTime) {
+    return at(fileTime, ZoneId.systemDefault());
+  }
+
+  public static TimeUtils at(FileTime fileTime, ZoneId zoneId) {
+    return new TimeUtils(fileTime.toInstant().atZone(zoneId));
   }
 
   public LocalDateTime toLocalDateTime() {
