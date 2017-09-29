@@ -1,14 +1,13 @@
 package s4lab.db;
 
-import s4lab.TimeUtils;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.sql.*;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,39 +74,33 @@ public class DbHandler {
     return new ConnectionProxy(actualConnection);
   }
 
-  public StateInformation readStateInformation() {
-    try (Connection c = getConnection()) {
-      try (Statement s = c.createStatement()) {
-        try (ResultSet rs = s.executeQuery("select last_scan from state")) {
-          if (!rs.next()) {
-            throw new IllegalStateException("Cannot read state information");
-          }
-          Timestamp last_scan = rs.getTimestamp("last_scan");
-          if (rs.next()) {
-            throw new IllegalStateException("Too much state information");
-          }
-
-          StateInformation si = new StateInformation();
-          si.setLastScan(last_scan == null ? null : TimeUtils.at(last_scan, ZoneOffset.UTC).toZonedDateTime(ZoneId.systemDefault()));
-          return si;
-        }
-      }
-    } catch (SQLException e) {
-      throw new IllegalStateException("Cannot read state information", e);
+  public QueryBuilder buildQuery(String sql) {
+    try {
+      return new QueryBuilder(getConnection()).withStatement(sql);
+    } catch (Throwable t) {
+      throw new DatabaseException(t);
     }
   }
 
+  public StateInformation readStateInformation() {
+    StateInformation stateInformation = buildQuery("select last_scan from state")
+            .executeQueryForObject(rs -> {
+              StateInformation si = new StateInformation();
+              si.setLastScan(rs.getTimestamp(1));
+              return si;
+            });
+    if (stateInformation == null) {
+      throw new IllegalStateException("No state information found");
+    }
+    return stateInformation;
+  }
+
   public void setStateInformationLastScan(ZonedDateTime lastScan) {
-    try (Connection c = getConnection()) {
-      try (PreparedStatement s = c.prepareStatement("update state set last_scan=?")) {
-        s.setTimestamp(1, lastScan == null ? null : TimeUtils.at(lastScan).toTimestamp(ZoneOffset.UTC));
-        int n = s.executeUpdate();
-        if (n != 1) {
-          throw new IllegalStateException("State information update caused wrong number of database updates: " + n);
-        }
-      }
-    } catch (SQLException e) {
-      throw new IllegalStateException("Could not update state information", e);
+    int n = buildQuery("update state set last_scan=?")
+            .withParam().timestampValue(1, lastScan)
+            .executeUpdate();
+    if (n != 1) {
+      throw new IllegalStateException("State information not updated properly, expected 1 but updated " + n);
     }
   }
 
@@ -122,5 +115,4 @@ public class DbHandler {
       this.lastScan = lastScan;
     }
   }
-
 }

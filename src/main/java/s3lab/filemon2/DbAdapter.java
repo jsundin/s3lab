@@ -94,7 +94,7 @@ public class DbAdapter {
   public int updateFiles(List<FileDefinition> fds) throws SQLException {
     int updates = 0;
     try (Connection conn = getConnection(JDBC_URL)) {
-      try (PreparedStatement stmt = conn.prepareStatement("update files set last_modified=?, last_pushed=?, deleted_at=?, version=? where path=?")) {
+      try (PreparedStatement stmt = conn.prepareStatement("executeUpdate files set last_modified=?, last_pushed=?, deleted_at=?, version=? where path=?")) {
         for (FileDefinition fd : fds) {
           stmt.setTimestamp(1, Timestamp.valueOf(fd.getLastModified()));
           stmt.setTimestamp(2, fd.getLastPushed() == null ? null : Timestamp.valueOf(fd.getLastPushed()));
