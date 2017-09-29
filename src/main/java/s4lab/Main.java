@@ -8,7 +8,6 @@ import s4lab.fs.FileSystemScanner;
 import s4lab.fs.rules.ExcludeOldFilesRule;
 import s4lab.fs.rules.ExcludeRule;
 
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 public class Main {
@@ -22,7 +21,7 @@ public class Main {
   public void run() throws Exception {
     Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream(CONFIG));
 
-    DbHandler dbHandler = new DbHandler();
+    DbHandler dbHandler = new DbHandler("jdbc:derby:files;create=true", null, null, "1-1");
     dbHandler.start();
     FileSystemScanner fs = new FileSystemScanner(dbHandler);
     FileRepository fileRepository = new FileRepository(dbHandler);

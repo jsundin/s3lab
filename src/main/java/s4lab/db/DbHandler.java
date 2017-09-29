@@ -14,10 +14,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DbHandler {
-  private String jdbcUrl = "jdbc:derby:files;create=true";
-  private String poolSize = "1-1";
-  //private String jdbcUrl = "jdbc:hsqldb:file:/tmp/hdb/files";
+  private final String jdbcUrl;
+  private final String jdbcUsername;
+  private final String jdbcPassword;
+  private final String poolSize;
   private HikariDataSource ds;
+  private final FileRepository fileRepository = new FileRepository(this);
+
+  public DbHandler(String jdbcUrl, String jdbcUsername, String jdbcPassword, String poolSize) {
+    this.jdbcUrl = jdbcUrl;
+    this.jdbcUsername = jdbcUsername;
+    this.jdbcPassword = jdbcPassword;
+    this.poolSize = poolSize;
+  }
 
   public void start() throws SQLException {
     int[] poolSz;
@@ -33,6 +42,12 @@ public class DbHandler {
 
     ds = new HikariDataSource();
     ds.setJdbcUrl(jdbcUrl);
+    if (jdbcUsername != null) {
+      ds.setUsername(jdbcUsername);
+      if (jdbcPassword != null) {
+        ds.setPassword(jdbcPassword);
+      }
+    }
     ds.setMaximumPoolSize(poolSz.length == 1 ? poolSz[0] : poolSz[1]);
     if (poolSz.length == 2) {
       ds.setMinimumIdle(poolSz[0]);
@@ -82,7 +97,6 @@ public class DbHandler {
   }
 
   public Connection getConnection() throws SQLException {
-    //return new ConnectionProxy(actualConnection);
     return ds.getConnection();
   }
 
@@ -94,6 +108,11 @@ public class DbHandler {
     }
   }
 
+  public FileRepository getFileRepository() {
+    return fileRepository;
+  }
+
+  @Deprecated
   public StateInformation readStateInformation() {
     StateInformation stateInformation = buildQuery("select last_scan from state")
             .executeQueryForObject(rs -> {
@@ -107,6 +126,7 @@ public class DbHandler {
     return stateInformation;
   }
 
+  @Deprecated
   public void setStateInformationLastScan(ZonedDateTime lastScan) {
     int n = buildQuery("update state set last_scan=?")
             .withParam().timestampValue(1, lastScan)
@@ -116,6 +136,7 @@ public class DbHandler {
     }
   }
 
+  @Deprecated
   public class StateInformation {
     private ZonedDateTime lastScan;
 
@@ -126,22 +147,5 @@ public class DbHandler {
     public void setLastScan(ZonedDateTime lastScan) {
       this.lastScan = lastScan;
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    DbHandler dbh = new DbHandler();
-    dbh.start();
-
-    System.out.println("query finished");
-    Connection c1 = dbh.getConnection();
-    //c1.close();
-    System.out.println("got c1");
-    Connection c2 = dbh.getConnection();
-    System.out.println("got c2");
-
-    c1.createStatement().execute("select * from file");
-    c2.createStatement().execute("select * from file");
-
-    dbh.finish();
   }
 }

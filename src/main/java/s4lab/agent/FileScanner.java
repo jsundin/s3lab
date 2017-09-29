@@ -131,35 +131,18 @@ public class FileScanner {
       UUID fileId = UUID.randomUUID();
       ZonedDateTime lastModified = FileTools.lastModified(file);
 
-      insertFile(fileId, file, configuredDirectory.id);
-      insertFileVersion(fileId, 0, lastModified, false);
+      dbHandler.getFileRepository().insertFile(fileId, file, configuredDirectory.id);
+      dbHandler.getFileRepository().insertFileVersion(fileId, 0, lastModified, false);
     } else {
       if (!file.exists()) {
-        insertFileVersion(fileVersion.id, fileVersion.version + 1, ZonedDateTime.now(), true);
+        dbHandler.getFileRepository().insertFileVersion(fileVersion.id, fileVersion.version + 1, ZonedDateTime.now(), true);
       } else {
         ZonedDateTime lastModified = FileTools.lastModified(file);
         if (!fileVersion.modified.equals(lastModified)) {
-          insertFileVersion(fileVersion.id, fileVersion.version + 1, lastModified, false);
+          dbHandler.getFileRepository().insertFileVersion(fileVersion.id, fileVersion.version + 1, lastModified, false);
         }
       }
     }
-  }
-
-  private int insertFile(UUID fileId, File file, UUID directoryId) {
-    return dbHandler.buildQuery("insert into file (id, filename, directory_id) values (?, ?, ?)")
-            .withParam().uuidValue(1, fileId)
-            .withParam().fileValue(2, file)
-            .withParam().uuidValue(3, directoryId)
-            .executeUpdate();
-  }
-
-  private int insertFileVersion(UUID fileId, int version, ZonedDateTime modified, boolean deleted) {
-    return dbHandler.buildQuery("insert into file_version (file_id, version, modified, deleted) values (?, ?, ?, ?)")
-            .withParam().uuidValue(1, fileId)
-            .withParam().intValue(2, version)
-            .withParam().timestampValue(3, modified)
-            .withParam().booleanValue(4, deleted)
-            .executeUpdate();
   }
 
   private Collection<ConfiguredDirectory> scanConfiguredDirectories(List<DirectoryConfiguration> directoryConfigurations) {
@@ -265,9 +248,9 @@ public class FileScanner {
     public void run() {
       ZonedDateTime scanTime = ZonedDateTime.now();
       if (forceFullScan || configuredDirectory.lastScan == null) {
-        logger.info("Initial filescan started for '{}'", configuredDirectory.path);
+        logger.info("Complete filescan started for '{}'", configuredDirectory.path);
       } else {
-        logger.info("Supplementary filescan started for '{}', last scanned {}", configuredDirectory.path, configuredDirectory.lastScan);
+        logger.info("Differential filescan started for '{}', last scanned {}", configuredDirectory.path, configuredDirectory.lastScan);
       }
       long t0 = System.currentTimeMillis();
 
