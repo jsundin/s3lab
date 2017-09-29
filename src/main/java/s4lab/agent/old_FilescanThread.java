@@ -12,14 +12,14 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-class FilescanThread {
+class old_FilescanThread {
   private static int threadId = 1;
   private Logger logger = LoggerFactory.getLogger(getClass());
   private final Worker worker = new Worker();
   private final UUID directoryId;
   private final DbHandler dbHandler;
 
-  public FilescanThread(DbHandler dbHandler, UUID directoryId) {
+  public old_FilescanThread(DbHandler dbHandler, UUID directoryId) {
     this.directoryId = directoryId;
     this.dbHandler = dbHandler;
   }

@@ -15,7 +15,7 @@ import java.util.List;
 
 public class DbHandler {
   private String jdbcUrl = "jdbc:derby:files;create=true";
-  private String poolSize = "1-10";
+  private String poolSize = "1-1";
   //private String jdbcUrl = "jdbc:hsqldb:file:/tmp/hdb/files";
   private HikariDataSource ds;
 

@@ -2,6 +2,7 @@
   "directories": [
     {
       "directory": "/home/jsundin/",
+      "retentionPolicy": "ignore",
       "rules": [
         {
           "rule": "excludePathPrefix",
@@ -26,7 +27,8 @@
       ]
     },
     {
-      "directory": "/aleska/video/"
+      "directory": "/aleska/video/",
+      "retentionPolicy": "ignore"
     }
   ],
   "globalRules": [

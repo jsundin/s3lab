@@ -22,7 +22,7 @@ public class BackupAgent {
   }
 
   /*public static void main(String[] args) throws Exception {
-    FilescanThread.FilescanHandle fsh = new FilescanThread(UUID.randomUUID()).start();
+    old_FilescanThread.FilescanHandle fsh = new old_FilescanThread(UUID.randomUUID()).start();
     fsh.fileFound(new File("/etc/passwd"));
     fsh.finish();
   }*/

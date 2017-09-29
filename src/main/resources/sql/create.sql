@@ -2,6 +2,7 @@ create table directory_config (
   id varchar(40),
   path varchar(4096),
   retention_policy varchar(16),
+  last_scan timestamp,
 
   primary key (id)
 );
@@ -25,14 +26,5 @@ create table file_version (
     foreign key (file_id) references file (id)
 );
 
-create table state (
-    id integer,
-    last_scan timestamp,
-
-    primary key (id)
-);
-
 create index file_version_version on file_version (version);
 create index file_version_modified on file_version (modified);
-
-insert into state (id, last_scan) values (1, null);

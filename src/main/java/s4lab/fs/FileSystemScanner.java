@@ -137,10 +137,10 @@ public class FileSystemScanner {
         try (PreparedStatement s = c.prepareStatement("insert into directory_config (id, path, retention_policy) values (?, ?, ?)")) {
           for (ConfiguredDirectory cd : add) {
             s.setString(1, cd.getId().toString());
-            s.setString(2, cd.getConfiguration().getDirectory());
+            s.setString(2, cd.getConfiguration().getDirectory().toString());
             s.setString(3, cd.getRetentionPolicy() == null ? null : cd.getRetentionPolicy().toString());
             s.executeUpdate();
-            configuredDirectories.put(cd.getConfiguration().getDirectory(), cd);
+            configuredDirectories.put(cd.getConfiguration().getDirectory().toString(), cd);
           }
         }
       } catch (SQLException e) {
@@ -171,7 +171,7 @@ public class FileSystemScanner {
         continue;
       }
 
-      File directory = new File(configuredDirectory.getConfiguration().getDirectory());
+      File directory = new File(configuredDirectory.getConfiguration().getDirectory().toString());
       if (!directory.exists()) {
         logger.warn("Configured directory does not exist: " + directory); // TODO: exception?
         continue;

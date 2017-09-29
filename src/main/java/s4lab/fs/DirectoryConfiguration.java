@@ -1,16 +1,19 @@
 package s4lab.fs;
 
+import s4lab.conf.RetentionPolicy;
 import s4lab.fs.rules.ExcludeRule;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class DirectoryConfiguration {
-  private final String directory;
+  private final File directory;
   private final List<ExcludeRule> excludeRules;
+  private RetentionPolicy retentionPolicy;
 
-  public DirectoryConfiguration(String directory, ExcludeRule... excludeRules) {
+  public DirectoryConfiguration(File directory, ExcludeRule... excludeRules) {
     this.directory = directory;
     if (excludeRules != null && excludeRules.length > 0) {
       this.excludeRules = Collections.unmodifiableList(Arrays.asList(excludeRules));
@@ -19,7 +22,15 @@ public class DirectoryConfiguration {
     }
   }
 
-  public String getDirectory() {
+  public RetentionPolicy getRetentionPolicy() {
+    return retentionPolicy;
+  }
+
+  public void setRetentionPolicy(RetentionPolicy retentionPolicy) {
+    this.retentionPolicy = retentionPolicy;
+  }
+
+  public File getDirectory() {
     return directory;
   }
 

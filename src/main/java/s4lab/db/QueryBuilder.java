@@ -4,11 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
 
+import java.io.File;
 import java.sql.*;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 public class QueryBuilder {
   private Logger logger = LoggerFactory.getLogger(getClass());
@@ -96,7 +99,7 @@ public class QueryBuilder {
     }
   }
 
-  public <T> int executeUpdate(List<T> values, ValueMapper<T> valueMapper) {
+  public <T> int executeUpdate(Collection<T> values, ValueMapper<T> valueMapper) {
     int results = 0;
     try {
       for (T value : values) {
@@ -133,6 +136,14 @@ public class QueryBuilder {
       } catch (Throwable t) {
         throw new DatabaseException(t);
       }
+    }
+
+    public QueryBuilder uuidValue(int index, UUID value) {
+      return stringValue(index, value.toString());
+    }
+
+    public QueryBuilder fileValue(int index, File value) {
+      return stringValue(index, value.toString());
     }
 
     public QueryBuilder timestampValue(int index, ZonedDateTime value) {

@@ -59,7 +59,8 @@ public class ConfigurationReader {
       }
 
       localRules.addAll(globalExcludeRules);
-      DirectoryConfiguration d = new DirectoryConfiguration(directoryConf.getDirectory(), localRules.toArray(new ExcludeRule[0]));
+      DirectoryConfiguration d = new DirectoryConfiguration(new File(directoryConf.getDirectory()), localRules.toArray(new ExcludeRule[0]));
+      d.setRetentionPolicy(directoryConf.retentionPolicy);
       configuration.getDirectoryConfigurations().add(d);
     }
 
