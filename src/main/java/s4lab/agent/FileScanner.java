@@ -25,13 +25,13 @@ public class FileScanner {
     this.dbHandler = dbHandler;
   }
 
-  public void scan(List<DirectoryConfiguration> directoryConfigurations) {
+  public void scan(final List<DirectoryConfiguration> directoryConfigurations, boolean forceFullScan) {
     long t0 = System.currentTimeMillis();
     Collection<ConfiguredDirectory> configuredDirectories = scanConfiguredDirectories(directoryConfigurations);
 
     List<Thread> threads = new ArrayList<>();
     configuredDirectories.forEach(cd -> {
-      FileScannerThread thread = new FileScannerThread(cd);
+      FileScannerThread thread = new FileScannerThread(cd, forceFullScan);
       threads.add(thread);
       thread.start();
     });
@@ -238,16 +238,18 @@ public class FileScanner {
 
   private class FileScannerThread extends Thread {
     private final ConfiguredDirectory configuredDirectory;
+    private final boolean forceFullScan;
 
-    private FileScannerThread(ConfiguredDirectory configuredDirectory) {
+    private FileScannerThread(ConfiguredDirectory configuredDirectory, boolean forceFullScan) {
       super("FileScanner-" + (threadIndex++));
       this.configuredDirectory = configuredDirectory;
+      this.forceFullScan = forceFullScan;
     }
 
     @Override
     public void run() {
       ZonedDateTime scanTime = ZonedDateTime.now();
-      if (configuredDirectory.lastScan == null) {
+      if (forceFullScan || configuredDirectory.lastScan == null) {
         logger.info("Initial filescan started for '{}'", configuredDirectory.path);
       } else {
         logger.info("Supplementary filescan started for '{}', last scanned {}", configuredDirectory.path, configuredDirectory.lastScan);
@@ -326,8 +328,7 @@ public class FileScanner {
       dbh.start();
       Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config3.json"));
 
-      FileScanner fs = new FileScanner(dbh);
-      fs.scan(config.getDirectoryConfigurations());
+      new FileScanner(dbh).scan(config.getDirectoryConfigurations(), false);
       dbh.finish();
     }
   }
