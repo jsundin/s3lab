@@ -6,12 +6,17 @@ import s4lab.TimeUtils;
 import s4lab.conf.Configuration;
 import s4lab.conf.ConfigurationReader;
 import s4lab.conf.RetentionPolicy;
+import s4lab.db.DatabaseException;
 import s4lab.db.DbHandler;
 import s4lab.fs.DirectoryConfiguration;
 import s4lab.fs.rules.ExcludeOldFilesRule;
 import s4lab.fs.rules.ExcludeRule;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,10 +41,17 @@ public class FileScanner {
       thread.start();
     });
     for (Thread thread : threads) {
-      try {
-        thread.join();
-      } catch (InterruptedException ignored) {}
+      boolean wasInterrupted = false;
+      do {
+        try {
+          Thread.interrupted(); // clear interrupt flag
+          thread.join();
+        } catch (InterruptedException ignored) {
+          wasInterrupted = true;
+        }
+      } while (wasInterrupted);
     }
+
     logger.info("Filescan finished in {}ms", (System.currentTimeMillis() - t0));
   }
 
@@ -82,17 +94,25 @@ public class FileScanner {
   }
 
   private int scanForDeletes(ConfiguredDirectory configuredDirectory) {
-    List<File> allFiles = dbHandler.buildQuery("select f.filename, dc.id from file f join directory_config dc on dc.id=f.directory_id join file_version v on f.id=v.file_id where v.version=(select max(version) from file_version v2 where v2.file_id=f.id) and v.deleted=false and dc.id=?")
-            .withParam().uuidValue(1, configuredDirectory.id)
-            .executeQuery(rs -> rs.getFile(1));
-    int deleted = 0;
-    for (File file : allFiles) {
-      if (!file.exists() || !file.isFile()) {
-        scanFile(configuredDirectory, file);
-        deleted++;
+    List<File> deletedFiles = new ArrayList<>();
+    try (Connection c = dbHandler.getConnection()) {
+      try (PreparedStatement s = c.prepareStatement("select f.filename from file f join directory_config dc on dc.id=f.directory_id join file_version v on f.id=v.file_id where v.version=(select max(version) from file_version v2 where v2.file_id=f.id) and v.deleted=false and dc.id=?")) {
+        s.setString(1, configuredDirectory.id.toString());
+        try (ResultSet rs = s.executeQuery()) {
+          while (rs.next()) {
+            File file = new File(rs.getString(1));
+            if (!file.exists() || !file.isFile()) {
+              deletedFiles.add(file);
+            }
+          }
+        }
       }
+    } catch (SQLException e) {
+      throw new DatabaseException(e);
     }
-    return deleted;
+
+    deletedFiles.forEach(file -> scanFile(configuredDirectory, file));
+    return deletedFiles.size();
   }
 
   private void scanFile(ConfiguredDirectory configuredDirectory, File file) {
