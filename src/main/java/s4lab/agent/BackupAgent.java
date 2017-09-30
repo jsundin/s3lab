@@ -50,7 +50,7 @@ public class BackupAgent {
     //BackupTarget backupTarget = new LocalDirectoryBackupTarget(dbh, new File("/tmp/backuptarget"));
     DevNullBackupTarget backupTarget = new DevNullBackupTarget(dbh, 1);
 
-    FileUploadManager fileUploadManager = new FileUploadManager(dbh, 2, backupTarget);
+    FileUploadManager fileUploadManager = new FileUploadManager(dbh, Settings.UPLOAD_THREADS, backupTarget);
     fileUploadManager.start();
 
     new FileScanner(dbh).scan(config.getDirectoryConfigurations(), false);

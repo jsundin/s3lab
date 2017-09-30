@@ -10,4 +10,5 @@ public final class Settings {
   public static final String JDBC_USERNAME = null;
   public static final String JDBC_PASSWORD = null;
   public static final String JDBC_POOL_SIZE = "1-1";
+  public static final int UPLOAD_THREADS = 2;
 }
