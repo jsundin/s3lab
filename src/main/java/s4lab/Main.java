@@ -19,7 +19,7 @@ public class Main {
   private static final String CONFIG = "/config2.json";
 
   public void run() throws Exception {
-    Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream(CONFIG));
+    Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream(CONFIG), ConfigurationReader.Format.JSON);
 
     DbHandler dbHandler = new DbHandler("jdbc:derby:files;create=true", null, null, "1-1");
     dbHandler.start();

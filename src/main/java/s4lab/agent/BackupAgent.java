@@ -46,7 +46,7 @@ public class BackupAgent {
 
     restart(dbh);
 
-    Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config2.json"));
+    Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config2.yml"), ConfigurationReader.Format.YAML);
 
     //BackupTarget backupTarget = new LocalDirectoryBackupTarget(dbh, new File("/tmp/backuptarget"));
     DevNullBackupTarget backupTarget = new DevNullBackupTarget(dbh, 1);

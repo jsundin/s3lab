@@ -1,7 +1,10 @@
 package s4lab.conf;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FilenameUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
@@ -28,25 +31,41 @@ import java.util.stream.Collectors;
  */
 public class ConfigurationReader {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final ObjectMapper objectMapper;
   private Map<String, RuleDefinition> scannedRules;
 
   public ConfigurationReader() {
-    objectMapper = new ObjectMapper();
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   }
 
   public Configuration readConfiguration(File file) throws IOException, ParseException {
+    String ext = FilenameUtils.getExtension(file.getName());
+    Format format;
+    switch (ext.toLowerCase()) {
+      case "yml":
+      case "yaml":
+        format = Format.YAML;
+        break;
+
+      case "json":
+        format = Format.JSON;
+        break;
+
+      default:
+        throw new IllegalArgumentException("Could not guess format: " + file.getName());
+    }
+    return readConfiguration(file, format);
+  }
+
+  public Configuration readConfiguration(File file, Format format) throws IOException, ParseException {
     try (InputStream is = new FileInputStream(file)) {
-      return readConfiguration(is);
+      return readConfiguration(is, format);
     }
   }
 
-  public Configuration readConfiguration(InputStream inputStream) throws IOException, ParseException {
+  public Configuration readConfiguration(InputStream inputStream, Format format) throws IOException, ParseException {
     Configuration configuration = new Configuration();
     List<ExcludeRule> globalExcludeRules = new ArrayList<>();
 
-    JsonConf jc = objectMapper.readValue(inputStream, JsonConf.class);
+    JsonConf jc = getObjectMapper(format).readValue(inputStream, JsonConf.class);
     for (Map<String, String> ruleDef : jc.getGlobalRules()) {
       globalExcludeRules.add(parseRule(ruleDef));
     }
@@ -65,6 +84,24 @@ public class ConfigurationReader {
     }
 
     return configuration;
+  }
+
+  private ObjectMapper getObjectMapper(Format format) {
+    ObjectMapper objectMapper;
+    switch (format) {
+      case JSON:
+        objectMapper = new ObjectMapper();
+        break;
+
+      case YAML:
+        objectMapper = new ObjectMapper(new YAMLFactory());
+        break;
+
+      default:
+        throw new IllegalArgumentException("Unknown format: " + format);
+    }
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    return objectMapper;
   }
 
   private Map<String, RuleDefinition> scanForRules() {
@@ -174,6 +211,7 @@ public class ConfigurationReader {
       this.directories = directories;
     }
 
+    @JsonProperty("global-rules")
     public List<Map<String, String>> getGlobalRules() {
       return globalRules;
     }
@@ -211,6 +249,7 @@ public class ConfigurationReader {
         this.rules = rules;
       }
 
+      @JsonProperty("retention-policy")
       public RetentionPolicy getRetentionPolicy() {
         return retentionPolicy;
       }
@@ -228,5 +267,10 @@ public class ConfigurationReader {
             '}';
       }
     }
+  }
+
+  public enum Format {
+    JSON,
+    YAML
   }
 }
