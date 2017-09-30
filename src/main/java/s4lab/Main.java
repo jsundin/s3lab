@@ -78,7 +78,7 @@ public class Main {
             ),
             new ExcludeSymlinksRule(),
             new ExcludeHiddenFilesRule(),
-            new ExcludePathSuffixRule(".log")
+            new ExcludeSuffixRule(".log")
     );
 
     xyz.finish(true);

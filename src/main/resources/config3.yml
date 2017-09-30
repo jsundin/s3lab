@@ -5,16 +5,23 @@ directories:
   rules:
   - rule: exclude-directory
     directory: "/home/jsundin/tmp/squash/"
+
   - rule: exclude-directory
     directory: "/home/jsundin/tmp/"
+
   - rule: exclude-directory
     directory: "/home/jsundin/Android/"
+
   - rule: exclude-directory
     directory: "/home/jsundin/AndroidStudioProjects/"
+
   - rule: exclude-directory
     directory: "/home/jsundin/apps/"
+
 - directory: "/aleska/video/"
   retention-policy: ignore
+  frequency: daily
+
 global-rules:
 - rule: exclude-symlinks
 - rule: exclude-hidden-files

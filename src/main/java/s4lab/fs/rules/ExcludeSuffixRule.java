@@ -5,8 +5,8 @@ import s4lab.conf.RuleParam;
 
 import java.io.File;
 
-@Rule("exclude-path-suffix")
-public class ExcludePathSuffixRule implements ExcludeRule {
+@Rule("exclude-suffix")
+public class ExcludeSuffixRule implements ExcludeRule {
   private String suffix;
 
   public String getSuffix() {
