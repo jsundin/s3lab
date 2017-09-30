@@ -90,6 +90,20 @@ public class FileRepository {
             .executeUpdate();
   }
 
+  public void deleteConfiguredDirectory(UUID directoryId) {
+    dbHandler.buildQuery("delete from file_version where file_id in (select f.id from file f join directory_config dc on dc.id=f.directory_id where dc.id=?)")
+            .withParam().uuidValue(1, directoryId)
+            .executeUpdate();
+
+    dbHandler.buildQuery("delete from file where directory_id=?")
+            .withParam().uuidValue(1, directoryId)
+            .executeUpdate();
+
+    dbHandler.buildQuery("delete from directory_config where id=?")
+            .withParam().uuidValue(1, directoryId)
+            .executeUpdate();
+  }
+
   public class tmpFileAndVersion {
     private String id;
     private String filename;

@@ -25,7 +25,7 @@ public class QueryBuilder {
 
   public void abort() {
     try {
-      if (!statement.isClosed()) {
+      if (statement != null && !statement.isClosed()) {
         statement.close();
       }
     } catch (SQLException e) {
@@ -33,7 +33,7 @@ public class QueryBuilder {
     }
 
     try {
-      if (!connection.isClosed()) {
+      if (connection != null && !connection.isClosed()) {
         connection.close();
       }
     } catch (SQLException e) {

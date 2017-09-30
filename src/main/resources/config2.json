@@ -2,17 +2,7 @@
   "directories": [
     {
       "directory": "/home/jsundin/tmp/backuplab/",
-      "rules": [
-        {
-          "rule": "excludePathSuffix",
-          "suffix": ".log"
-        },
-        {
-          "rule": "excludeOldFiles",
-          "cutoff": "2017-09-26T15:00:00+0000"
-        }
-      ],
-      "retentionPolicy": "ignore"
+      "retentionPolicy": "clear-local"
     }
   ],
   "globalRules": [

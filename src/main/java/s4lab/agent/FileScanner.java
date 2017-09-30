@@ -198,12 +198,12 @@ public class FileScanner {
 
         case IGNORE:
           logger.warn("Directory '{}' was removed and has been disabled", remove.path);
-          configuredDirectories.remove(remove.path);
           break;
 
         case CLEAR_LOCAL:
           logger.warn("Directory '{}' was removed, and local backup information will be purged", remove.path);
-          throw new UnsupportedOperationException("This has not yet been implemented"); // TODO: implement
+          dbHandler.getFileRepository().deleteConfiguredDirectory(remove.id);
+          break;
 
         case CLEAR_EVERYTHING:
           logger.warn("Directory '{}' was removed, and backups will be purged", remove.path);
@@ -213,6 +213,7 @@ public class FileScanner {
           logger.error("Unknown retention policy: '{}'", remove.retentionPolicy);
           throw new IllegalStateException("Unsupported retention policy: " + remove.retentionPolicy);
       }
+      configuredDirectories.remove(remove.path);
     }
 
     dbHandler.buildQuery("insert into directory_config (id, path, retention_policy) values (?, ?, ?)")
@@ -228,7 +229,7 @@ public class FileScanner {
             .executeUpdate(updatedInConf, (v, s) -> {
               s.uuidValue(2, v.id);
               s.stringValue(1, v.retentionPolicy.toString());
-              logger.info("Directory '{}' has been updated ({})", v.path, v.retentionPolicy);
+              logger.info("Configuration for directory '{}' has been updated", v.path);
             });
 
     return configuredDirectories.values();
@@ -264,7 +265,7 @@ public class FileScanner {
       try {
         results = scanDirectory(configuredDirectory, configuredDirectory.path, fileFilter);
       } catch (Throwable t) {
-        logger.error("File scan failed for '{}'", t);
+        logger.error("File scan failed for '" + configuredDirectory.path + "'", t);
         return;
       }
 
