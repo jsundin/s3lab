@@ -2,15 +2,21 @@
   "directories": [
     {
       "directory": "/home/jsundin/tmp/backuplab/",
-      "retentionPolicy": "clear-local"
+      "retentionPolicy": "clear-local",
+      "rules": [
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/backuplab/exclude/"
+        }
+      ]
     }
   ],
   "globalRules": [
     {
-      "rule": "excludeSymlinks"
+      "rule": "exclude-symlinks"
     },
     {
-      "rule": "excludeHiddenFiles"
+      "rule": "exclude-hidden-files"
     }
   ]
 }

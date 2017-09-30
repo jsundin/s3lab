@@ -5,7 +5,7 @@ import s4lab.conf.RuleParam;
 
 import java.io.File;
 
-@Rule("excludePathPrefix")
+@Rule("exclude-path-prefix")
 public class ExcludePathPrefixRule implements ExcludeRule {
   private String prefix;
 

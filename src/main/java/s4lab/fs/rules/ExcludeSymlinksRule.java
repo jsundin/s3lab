@@ -6,7 +6,7 @@ import s4lab.conf.Rule;
 import java.io.File;
 import java.io.IOException;
 
-@Rule("excludeSymlinks")
+@Rule("exclude-symlinks")
 public class ExcludeSymlinksRule implements ExcludeRule {
   @Override
   public boolean exclude(File f) {

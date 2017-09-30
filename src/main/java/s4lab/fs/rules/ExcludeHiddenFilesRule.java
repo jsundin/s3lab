@@ -4,7 +4,7 @@ import s4lab.conf.Rule;
 
 import java.io.File;
 
-@Rule("excludeHiddenFiles")
+@Rule("exclude-hidden-files")
 public class ExcludeHiddenFilesRule implements ExcludeRule {
   @Override
   public boolean exclude(File f) {

@@ -10,7 +10,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
 
-@Rule("excludeOldFiles")
+@Rule("exclude-old-files")
 public class ExcludeOldFilesRule implements ExcludeRule {
   private ZonedDateTime cutoff;
 

@@ -5,7 +5,7 @@ import s4lab.conf.RuleParam;
 
 import java.io.File;
 
-@Rule("excludeFilenamePrefix")
+@Rule("exclude-filename-prefix")
 public class ExcludeFilenamePrefixRule implements ExcludeRule {
   private String prefix;
 

@@ -32,6 +32,7 @@ public class BackupAgent {
     FileUtils.deleteDirectory(file);
     dbh.buildQuery("delete from file_version").executeUpdate();
     dbh.buildQuery("delete from file").executeUpdate();
+    dbh.buildQuery("delete from directory_config").executeUpdate();
     dbh.buildQuery("update directory_config set last_scan=null").executeUpdate();
   }
 
@@ -43,7 +44,7 @@ public class BackupAgent {
     DbHandler dbh = new DbHandler(Settings.JDBC_URL, Settings.JDBC_USERNAME, Settings.JDBC_PASSWORD, Settings.JDBC_POOL_SIZE);
     dbh.start();
 
-    //restart(dbh);
+    restart(dbh);
 
     Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config2.json"));
 
