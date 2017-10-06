@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+package agent;
+
+option java_package = "s4lab.agent";
+
+message FileMeta {
+    optional int32 formatVersion = 1;
+    optional bool encrypted = 2;
+    optional string archive = 3;
+    optional int32 keyIterations = 4;
+    optional int32 keyLength = 5;
+    optional string keyAlgorithm = 6;
+    optional string cryptoAlgorithm = 7;
+    optional bytes salt = 8;
+    optional bytes iv = 9;
+    required bytes fileMD5 = 10;
+    optional bytes decryptedMD5 = 11;
+}

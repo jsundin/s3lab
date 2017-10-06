@@ -1,10 +1,10 @@
 ---
 directories:
-- directory: "/home/jsundin/tmp/backuplab/"
+- directory: "/home/johdin/tmp/backuplab/"
   retention-policy: clear-local
   rules:
   - rule: exclude-directory
-    directory: "/home/jsundin/tmp/backuplab/exclude/"
+    directory: "/home/johdin/tmp/backuplab/exclude/"
 global-rules:
 - rule: exclude-symlinks
 - rule: exclude-hidden-files

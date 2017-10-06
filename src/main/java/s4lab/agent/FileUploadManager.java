@@ -2,9 +2,11 @@ package s4lab.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import s4lab.agent.backuptarget.BackupSession;
+import s4lab.agent.backuptarget.BackupTarget;
 import s4lab.db.DbHandler;
-import s4lab.target.BackupTarget;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -16,15 +18,17 @@ public class FileUploadManager {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final DbHandler dbHandler;
   private final BackupTarget backupTarget;
+  private final BackupSession backupSession;
   private UploadJobProducer uploadJobProducer;
   private List<UploadJobConsumer> uploadJobConsumers = new ArrayList<>();
   private final BlockingQueue<FileUploadJob> jobQueue = new LinkedBlockingQueue<>();
   private static int uploadJobConsumerId = 0;
 
-  public FileUploadManager(DbHandler dbHandler, int uploadThreads, BackupTarget backupTarget) {
+  public FileUploadManager(DbHandler dbHandler, int uploadThreads, BackupTarget backupTarget, BackupSession backupSession) {
     this.dbHandler = dbHandler;
     this.uploadThreads = uploadThreads;
     this.backupTarget = backupTarget;
+    this.backupSession = backupSession;
   }
 
   public void start() {
@@ -143,8 +147,12 @@ public class FileUploadManager {
             continue;
           }
 
-          backupTarget.handleJob(job);
-        } catch (InterruptedException ignored) {}
+          backupTarget.handleJob(backupSession, job);
+        } catch (InterruptedException ignored) {
+
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       } while (!allowedToFinish);
     }
   }
