@@ -4,9 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.agent.backuptarget.BackupSession;
-import s4lab.agent.backuptarget.localarchive.ArchiveLimiter;
-import s4lab.agent.backuptarget.localarchive.LocalArchiveBackupTargetNG;
-import s4lab.agent.backuptarget.localarchive.TarGzArchiver;
+import s4lab.agent.backuptarget.s3target.S3BackupTarget;
 import s4lab.conf.Configuration;
 import s4lab.conf.ConfigurationReader;
 import s4lab.conf.Settings;
@@ -47,12 +45,13 @@ public class BackupAgent {
     DbHandler dbh = new DbHandler(Settings.JDBC_URL, Settings.JDBC_USERNAME, Settings.JDBC_PASSWORD, Settings.JDBC_POOL_SIZE);
     dbh.start();
 
-    restart(dbh);
+    //restart(dbh);
 
     Configuration config = new ConfigurationReader().readConfiguration(getClass().getResourceAsStream("/config2.yml"), ConfigurationReader.Format.YAML);
 
     //BackupTarget backupTarget = new LocalDirectoryBackupTarget(dbh, new File("/tmp/backuptarget"));
     //DevNullBackupTarget backupTarget = new DevNullBackupTarget(dbh, 1);
+    /*
     LocalArchiveBackupTargetNG backupTarget = new LocalArchiveBackupTargetNG(() ->
         new TarGzArchiver(
             new File("/tmp/backups"),
@@ -61,6 +60,8 @@ public class BackupAgent {
             true,
             true)
     );
+    */
+    S3BackupTarget backupTarget = new S3BackupTarget("eu-west-1", "jsundin-lab-bucket");
     BackupSession session = backupTarget.openSession();
 
     FileUploadManager fileUploadManager = new FileUploadManager(dbh, Settings.UPLOAD_THREADS, backupTarget, session);

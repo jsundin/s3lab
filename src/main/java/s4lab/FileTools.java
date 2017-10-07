@@ -15,11 +15,10 @@ import javax.crypto.spec.PBEKeySpec;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.zip.GZIPOutputStream;
 
 public class FileTools {
   public static ZonedDateTime lastModified(File file) {
@@ -38,9 +37,25 @@ public class FileTools {
     }
   }
 
+  public static InputStream gzipInputStream(InputStream in) throws IOException {
+    PipedInputStream zipped = new PipedInputStream();
+    PipedOutputStream pipe = new PipedOutputStream(zipped);
+    new Thread(
+            () -> {
+              try(OutputStream zipper = new GZIPOutputStream(pipe)){
+                IOUtils.copy(in, zipper);
+              } catch (IOException e) {
+                e.printStackTrace();
+              }
+            }
+    ).start();
+    return zipped;
+  }
+
   public static void main(String[] args) throws Exception {
     Security.insertProviderAt(new BouncyCastleProvider(), 1);
-    verifyFile(new File("/tmp/backups/backup-0001.tgz.encrypted"), "put-me-in-configuration", false);
+    //verifyFile(new File("/tmp/backups/backup-0001.tgz.encrypted"), "put-me-in-configuration", false);
+    verifyFile(new File("/tmp/backups/nyarefil.encrypted"), "put-me-in-configuration", true);
   }
 
   private static void verifyFile(File file, String password, boolean decryptFileIfEncrypted) throws Exception {
@@ -53,14 +68,15 @@ public class FileTools {
     System.out.println("Metadata:\n" + meta);
     File targetFile = null;
 
-    String expectedExtension;
+    String expectedExtension = "";
     if ("tar".equals(meta.getArchive())) {
       expectedExtension = ".tar";
     } else if ("tar+gzip".equals(meta.getArchive())) {
       expectedExtension = ".tgz";
     } else {
-      throw new IllegalArgumentException("Unknown archive type: " + meta.getArchive());
+      System.out.println("Unknown archive type: " + meta.getArchive());
     }
+
     if (meta.getEncrypted()) {
       expectedExtension += ".encrypted";
       targetFile = new File(file.getParent(), FilenameUtils.removeExtension(file.getName()));
@@ -106,68 +122,4 @@ public class FileTools {
     }
   }
 
-  private static class DigestInputStream extends InputStream {
-    private final InputStream delegate;
-    private final MessageDigest md;
-
-    public DigestInputStream(InputStream delegate) throws NoSuchAlgorithmException {
-      this.delegate = delegate;
-      md = MessageDigest.getInstance("MD5");
-    }
-
-    public byte[] getDigest() {
-      return md.digest();
-    }
-
-    @Override
-    public int read() throws IOException {
-      int v = delegate.read();
-      md.update((byte) v);
-      return v;
-    }
-
-    @Override
-    public int read(byte[] b) throws IOException {
-      int v = delegate.read(b);
-      md.update(b, 0, v);
-      return v;
-    }
-
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-      int v = delegate.read(b, off, len);
-      md.update(b, off, v);
-      return v;
-    }
-
-    @Override
-    public long skip(long n) throws IOException {
-      return delegate.skip(n);
-    }
-
-    @Override
-    public int available() throws IOException {
-      return delegate.available();
-    }
-
-    @Override
-    public void close() throws IOException {
-      delegate.close();
-    }
-
-    @Override
-    public void mark(int readlimit) {
-      delegate.mark(readlimit);
-    }
-
-    @Override
-    public void reset() throws IOException {
-      delegate.reset();
-    }
-
-    @Override
-    public boolean markSupported() {
-      return delegate.markSupported();
-    }
-  }
 }
