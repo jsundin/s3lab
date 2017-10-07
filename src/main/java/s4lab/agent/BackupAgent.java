@@ -56,7 +56,7 @@ public class BackupAgent {
     LocalArchiveBackupTargetNG backupTarget = new LocalArchiveBackupTargetNG(() ->
         new TarGzArchiver(
             new File("/tmp/backups"),
-            new File("/home/johdin/tmp"),
+            new File("/home/jsundin/tmp"),
             ArchiveLimiter.newFileCountLimiter(5),
             true,
             true)

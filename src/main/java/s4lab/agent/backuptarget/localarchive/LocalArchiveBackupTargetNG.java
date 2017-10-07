@@ -33,15 +33,20 @@ public class LocalArchiveBackupTargetNG implements BackupTarget {
   @Override
   public void closeSession(BackupSession session) {
     if (session == null || !(session instanceof LocalArchiveBackupTargetThread)) {
-      throw new IllegalStateException("Wrong session type: " + session.getClass());
+      throw new IllegalStateException("Wrong session type: " + (session == null ? "(null)" : session.getClass()));
     }
     ((LocalArchiveBackupTargetThread) session).close();
+    try {
+      ((LocalArchiveBackupTargetThread) session).join();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void handleJob(BackupSession session, FileUploadJob job) throws IOException {
     if (session == null || !(session instanceof LocalArchiveBackupTargetThread)) {
-      throw new IllegalStateException("Wrong session type: " + session.getClass());
+      throw new IllegalStateException("Wrong session type: " + (session == null ? "(null)" : session.getClass()));
     }
     ((LocalArchiveBackupTargetThread) session).addJob(job);
   }

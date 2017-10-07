@@ -1,8 +1,67 @@
 {
-  "includes": [
-    "/home/jsundin/tmp/filemontest"
+  "directories": [
+    {
+      "directory": "",
+      "retention-policy": "",
+      "rules": [],
+      "target": {
+        "target": "local-archive",
+        "compress-archives": true,
+        "target-directory": "/tmp/backups",
+        "strip-directory-prefix": true,
+        "max-files-per-archive": 5,
+        "max-archive-size": "5k",
+        "encrypt-archive": true,
+        "credentials": "my-secret-password"
+      }
+    },
+    {
+      "directory": "",
+      "retention-policy": "",
+      "rules": [],
+      "target": {
+        "target": "s3",
+        "s3-target": "my-s3-target"
+      }
+    },
+    {
+      "target": {
+        "target": "local-file-copy",
+        "target-directory": "/tmp/copy-backups",
+        "strip-directory-prefix": true,
+        "compress-files": true,
+        "encrypt-files": true,
+        "obfuscate-filenames": true,
+        "credentials": "my-secret-password"
+      }
+    },
+    {
+      "target": {
+        "target": "remote-ssh-archive"
+      }
+    },
+    {
+      "target": {
+        "target": "remote-ssh-file-copy"
+      }
+    }
   ],
-  "excludes": [
-    "/home/jsundin/tmp/exclude"
+  "global-rules": [],
+  "s3-targets": [
+    {
+      "target": "my-s3-target",
+      "threads": 5,
+      "throttling-for-target": "10kbps",
+      "throttling-per-thread": "5kbps",
+      "username": "",
+      "password": "",
+      "bucket": "my-backup-bucket",
+      "target-directory": "/backup/images",
+      "strip-directory-prefix": true,
+      "obfuscate-filenames": true,
+      "compress-files": true,
+      "encrypt-files": true,
+      "credentials": "my-secret-password"
+    }
   ]
 }

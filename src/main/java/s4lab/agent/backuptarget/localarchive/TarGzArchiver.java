@@ -74,14 +74,6 @@ public class TarGzArchiver {
     tarOut.closeArchiveEntry();
   }
 
-  private void writeDigest(File file, DigestOutputStream dos) {
-    try (FileOutputStream fos = new FileOutputStream(file)) {
-      fos.write(DatatypeConverter.printHexBinary(dos.getDigest()).toLowerCase().getBytes());
-    } catch (IOException e) {
-      logger.error("Could not write checksum file", e);
-    }
-  }
-
   private void closeArchive() {
     try {
       if (tarOut != null) {

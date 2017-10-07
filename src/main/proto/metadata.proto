@@ -5,7 +5,7 @@ package agent;
 option java_package = "s4lab.agent";
 
 message FileMeta {
-    optional int32 formatVersion = 1;
+    required int32 formatVersion = 1;
     optional bool encrypted = 2;
     optional string archive = 3;
     optional int32 keyIterations = 4;
