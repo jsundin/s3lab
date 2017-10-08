@@ -1,0 +1,23 @@
+{
+  "jobs": [
+    {
+      "directory": "/home/jsundin/tmp",
+      "interval": "1d",
+      "retention-policy": "ignore",
+      "deleted-files-policy": {
+        "keep-forever": true
+      },
+      "old-versions-policy": {
+        "keep-forever": true
+      }
+    }
+  ],
+  "notifications": [
+    {
+      "provider": "stdout"
+    }
+  ],
+  "database": {
+    "url": "jdbc:derby:s5db;create=true"
+  }
+}

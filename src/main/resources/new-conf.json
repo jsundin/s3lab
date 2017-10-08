@@ -1,0 +1,66 @@
+{
+  "jobs": [
+    {
+      "directory": "/home/jsundin/",
+      "interval": "1d",
+      "retention-policy": "fail",
+      "rules": [],
+      "target": "var-backup-home",
+      "deletion-policy": {
+        "keep-forever": true,
+        "just-delete": true,
+        "keep-versions": 3,
+        "keep-for": "30d"
+      },
+      "versioning-policy": {
+        "keep-forever": true,
+        "just-delete": true,
+        "keep-versions": 3,
+        "keep-for": "30d"
+      }
+    }
+  ],
+  "global-rules": [],
+  "targets": [
+    {
+      "id": "var-backup-home",
+      "driver": "local-file-copy",
+      "target-directory": "/var/backups/homedir",
+      "strip-directory-prefix": true,
+      "compress-files": true,
+      "encrypt-files": true,
+      "obfuscate-filenames": true,
+      "file-secret": "abc123",
+      "filename-secret": "cba321"
+    },
+    {
+      "id": "s3-home",
+      "driver": "s3",
+      "check-etag-before-upload": true,
+      "threads": 5,
+      "throttling-per-thread": "5kbps",
+      "secret1": "",
+      "secret2": "",
+      "bucket": "jsundin-home-backup",
+      "key-prefix": "home",
+      "strip-directory-prefix": true,
+      "compress-files": true,
+      "encrypt-files": true,
+      "obfuscate-filenames": true,
+      "file-secret": "abc123",
+      "filename-secret": "cba321"
+    }
+  ],
+  "notifications": [
+    {
+      "provider": "gmail",
+      "username": "xx",
+      "password": "yy",
+      "from": "jsundin@gmail.com",
+      "to": [
+        "jsundin@gmail.com"
+      ],
+      "subject-prefix": "[Backup] "
+    }
+  ]
+}
