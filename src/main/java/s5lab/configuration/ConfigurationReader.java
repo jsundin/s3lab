@@ -81,6 +81,12 @@ public class ConfigurationReader {
       if (job.getIntervalInMinutes() == null) {
         throw new ConfigurationException("No interval configured for job '" + job.getDirectory() + "'");
       }
+      if (job.getDeletedFilesPolicy() == null) {
+        throw new ConfigurationException("No deleted-files-policy for job '" + job.getDirectory() + "'");
+      }
+      if (job.getOldVersionsPolicy() == null) {
+        throw new ConfigurationException("No old-versions-policy for job '" + job.getDirectory() + "'");
+      }
       JobConfiguration.FileVersioningPolicy deletedFilesPolicy = parseFileVersioningPolicy(
               job.getDeletedFilesPolicy().getKeepForever(),
               job.getDeletedFilesPolicy().getDelete(),
