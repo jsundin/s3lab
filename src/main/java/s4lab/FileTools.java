@@ -4,6 +4,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import s4lab.agent.Metadata;
 
 import javax.crypto.Cipher;
@@ -37,19 +39,48 @@ public class FileTools {
     }
   }
 
-  public static InputStream gzipInputStream(InputStream in) throws IOException {
-    PipedInputStream zipped = new PipedInputStream();
-    PipedOutputStream pipe = new PipedOutputStream(zipped);
-    new Thread(
-            () -> {
-              try(OutputStream zipper = new GZIPOutputStream(pipe)){
-                IOUtils.copy(in, zipper);
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
-            }
-    ).start();
-    return zipped;
+  public static class GZipCompressionInputStream {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final InputStream inputStream;
+    private final PipedInputStream zipped = new PipedInputStream();
+    private volatile Throwable error;
+
+    public GZipCompressionInputStream(InputStream inputStream) {
+      this.inputStream = inputStream;
+    }
+
+    public InputStream stream() throws IOException {
+      PipedOutputStream pipe = new PipedOutputStream(zipped);
+      GZipCompressionInputStreamThread thread = new GZipCompressionInputStreamThread(pipe);
+      thread.start();
+      return zipped;
+    }
+
+    public boolean hasError() {
+      return error != null;
+    }
+
+    public Throwable getError() {
+      return error;
+    }
+
+    private class GZipCompressionInputStreamThread extends Thread {
+      private final PipedOutputStream pipe;
+
+      public GZipCompressionInputStreamThread(PipedOutputStream pipe) {
+        this.pipe = pipe;
+      }
+
+      @Override
+      public void run() {
+        try (OutputStream zipper = new GZIPOutputStream(pipe)) {
+          IOUtils.copy(inputStream, zipper);
+        } catch (Throwable t) {
+          logger.error("Error while zipping", t);
+          error = t;
+        }
+      }
+    }
   }
 
   public static void main(String[] args) throws Exception {
