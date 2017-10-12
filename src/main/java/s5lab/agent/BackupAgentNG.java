@@ -1,8 +1,10 @@
 package s5lab.agent;
 
+import org.apache.commons.cli.CommandLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s5lab.BackupJob;
+import s5lab.S5Lab;
 import s5lab.configuration.Configuration;
 import s5lab.configuration.ConfigurationReader;
 import s5lab.configuration.JobConfiguration;
@@ -23,13 +25,24 @@ import java.util.stream.Collectors;
 public class BackupAgentNG {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  public void run(String... args) {
+  public boolean run(CommandLine commandLine) {
+    File configurationFile;
+    if (commandLine.hasOption(S5Lab.OPT_CONFIGURATION)) {
+      configurationFile = new File(commandLine.getOptionValue(S5Lab.OPT_CONFIGURATION));
+    } else {
+      configurationFile = new File("/home/johdin/projects/s3lab/src/main/resources/work-conf.json"); // TODO: bort i prod!
+    }
+    logger.debug("Loading configuration from '{}'", configurationFile);
     Configuration conf;
     try {
-      conf = new ConfigurationReader().read(new File("/data/projects/s3lab/src/main/resources/work-conf.json"), ConfigurationReader.Format.JSON);
+      conf = new ConfigurationReader().read(configurationFile, ConfigurationReader.Format.JSON);
     } catch (IOException e) {
       logger.error("Could not read configuration", e);
-      return;
+      return false;
+    }
+    if (commandLine.hasOption(S5Lab.OPT_TEST_CONFIGURATION)) {
+      logger.debug("Application was started with '{}' option, and configuration was ok - exiting", S5Lab.OPT_TEST_CONFIGURATION);
+      return true;
     }
 
     NotificationService notificationService = new NotificationService(conf.getNotificationProviders());
@@ -48,7 +61,7 @@ public class BackupAgentNG {
               .withShortMessage("Backup failed during startup")
               .withException(t)
               .build());
-      return;
+      return false;
     }
 
     BackupAgentContext ctx = new BackupAgentContext(dbHandler.getClient(), notificationService);
@@ -68,6 +81,8 @@ public class BackupAgentNG {
     } catch (Exception e) {
       logger.warn("Could not close database connection", e);
     }
+
+    return true;
   }
 
   private void runAgent(BackupAgentContext ctx, Configuration conf, List<BackupJob> jobs) {

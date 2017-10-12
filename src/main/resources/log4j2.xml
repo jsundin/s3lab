@@ -1,0 +1,26 @@
+<Configuration>
+    <Properties>
+        <Property name="stdout_format">[%-10t %-5p] %d{ISO8601} -- %m%n</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="ConsoleStdout" target="SYSTEM_OUT">
+            <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="ACCEPT"/>
+            <PatternLayout pattern="${stdout_format}" />
+        </Console>
+
+        <Console name="ConsoleStderr" target="SYSTEM_ERR">
+            <ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${stdout_format}" />
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="s5lab" level="debug"/>
+
+        <Root level="info">
+            <AppenderRef ref="ConsoleStdout" />
+            <AppenderRef ref="ConsoleStderr" />
+        </Root>
+    </Loggers>
+</Configuration>
