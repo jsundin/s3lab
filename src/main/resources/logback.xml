@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="format" value="[%-10thread %-5level] %d{HH:mm:ss.SSS} -- %logger{10} -- %msg%n"/>
+    <property name="app_level" value="DEBUG"/>
+    <property name="default_level" value="INFO"/>
+    <property name="stderr_cutoff" value="WARN"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.out</target>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>${stderr_cutoff}</level>
+            <onMatch>DENY</onMatch>
+            <onMismatch>ACCEPT</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>${format}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>${stderr_cutoff}</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>${format}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="s5lab" level="${app_level}" additivity="false">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDERR" />
+    </logger>
+
+    <root level="${default_level}">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDERR" />
+    </root>
+</configuration>
