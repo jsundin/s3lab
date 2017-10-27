@@ -4,15 +4,24 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import s5lab.backuptarget.BackupProvider;
+import s5lab.backuptarget.JobTargetConfiguration;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ConfigurationReader {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
   public Configuration read(File file) throws IOException {
     String extension = FilenameUtils.getExtension(file.getName());
     Format format;
@@ -41,11 +50,14 @@ public class ConfigurationReader {
 
   public Configuration read(InputStream inputStream, Format format) throws IOException {
     ParsedConfiguration loadedConf = getObjectMapper(format).readValue(inputStream, ParsedConfiguration.class);
+    List<BackupProvider> backupProviders = loadedConf.getBackupProviders();
+    List<JobConfiguration> jobs = parseJobs(loadedConf.getJobs(), backupProviders);
 
     Configuration configuration = new Configuration(
             loadedConf.getNotificationProviders(),
-            parseJobs(loadedConf.getJobs()),
-            loadedConf.getDatabase());
+            jobs,
+            loadedConf.getDatabase(),
+            backupProviders);
     return configuration;
   }
 
@@ -69,8 +81,11 @@ public class ConfigurationReader {
     return policy;
   }
 
-  private List<JobConfiguration> parseJobs(List<ParsedConfiguration.JobConf> jobs) throws ConfigurationException {
+  private List<JobConfiguration> parseJobs(List<ParsedConfiguration.JobConf> jobs, List<BackupProvider> backupProviders) throws ConfigurationException {
+    Map<String, BackupProvider> backupProvidersById = backupProviders.stream().collect(Collectors.toMap(k -> k.getId(), v -> v));
+
     List<JobConfiguration> jobConfigurations = new ArrayList<>();
+
     for (ParsedConfiguration.JobConf job : jobs) {
       if (job.getDirectory() == null) {
         throw new ConfigurationException("Job configured without a directory");
@@ -99,13 +114,27 @@ public class ConfigurationReader {
               job.getOldVersionsPolicy().getKeepOldVersions(),
               job.getOldVersionsPolicy().getExpireAfterMinutes());
 
+      if (job.getTargetConfiguration() == null || !job.getTargetConfiguration().containsKey("id")) {
+        throw new ConfigurationException("No target for job '" + job.getDirectory() + "'");
+      }
+
+      HashMap<String, Object> targetConfiguration = new HashMap<>(job.getTargetConfiguration());
+      String backupTargetId = (String) targetConfiguration.get("id");
+      targetConfiguration.remove("id");
+      if (!backupProvidersById.containsKey(backupTargetId)) {
+        throw new ConfigurationException("Target '" + backupTargetId + "' does not exist for job '" + job.getDirectory() + "'");
+      }
+      BackupProvider backupProvider = backupProvidersById.get(backupTargetId);
+      JobTargetConfiguration targetConfig = backupProvider.parseJobTargetConfiguration(targetConfiguration);
+
       JobConfiguration jobConf = new JobConfiguration(
               job.getDirectory(),
               job.getRetentionPolicy(),
               job.getIntervalInMinutes(),
               deletedFilesPolicy,
-              oldVersionsPolicy
-      );
+              oldVersionsPolicy,
+              backupProvider,
+              targetConfig);
       jobConfigurations.add(jobConf);
     }
     return jobConfigurations;

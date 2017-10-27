@@ -86,6 +86,9 @@ public class BackupAgentNG {
   }
 
   private void runAgent(BackupAgentContext ctx, Configuration conf, List<BackupJob> jobs) {
+    for (BackupJob job : jobs) {
+      System.out.println(job.getConfiguration().getBackupProvider() + ": " + job.getConfiguration().getTargetConfiguration());
+    }
   }
 
   private List<BackupJob> findBackupJobs(DbClient dbClient, List<JobConfiguration> configuredJobs) {

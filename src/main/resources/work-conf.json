@@ -9,7 +9,19 @@
       },
       "old-versions-policy": {
         "keep-forever": true
+      },
+      "target": {
+        "id": "tmp-backups",
+        "subdir": "tmp"
       }
+    }
+  ],
+  "targets": [
+    {
+      "id": "tmp-backups",
+      "provider": "local-file-copy",
+      "target-directory": "/tmp/backups",
+      "create-if-needed": true
     }
   ],
   "notifications": [

@@ -5,16 +5,19 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import s5lab.backuptarget.BackupProvider;
 import s5lab.notification.NotificationProvider;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 class ParsedConfiguration {
   private List<NotificationProvider> notificationProviders;
   private List<JobConf> jobs;
   private DatabaseConfiguration database;
+  private List<BackupProvider> backupProviders;
 
   public DatabaseConfiguration getDatabase() {
     return database;
@@ -41,12 +44,22 @@ class ParsedConfiguration {
     this.notificationProviders = notificationProviders;
   }
 
+  public List<BackupProvider> getBackupProviders() {
+    return backupProviders;
+  }
+
+  @JsonProperty("targets")
+  public void setBackupProviders(List<BackupProvider> backupProviders) {
+    this.backupProviders = backupProviders;
+  }
+
   static class JobConf {
     private File directory;
     private RetentionPolicy retentionPolicy;
     private Long intervalInMinutes;
     private JobDeletedFilesPolicy deletedFilesPolicy;
     private JobOldVersionsPolicy oldVersionsPolicy;
+    private Map<String, Object> targetConfiguration;
 
     public Long getIntervalInMinutes() {
       return intervalInMinutes;
@@ -92,6 +105,15 @@ class ParsedConfiguration {
     @JsonDeserialize(using = StringToFileDeserializer.class)
     public void setDirectory(File directory) {
       this.directory = directory;
+    }
+
+    public Map<String, Object> getTargetConfiguration() {
+      return targetConfiguration;
+    }
+
+    @JsonProperty("target")
+    public void setTargetConfiguration(Map<String, Object> targetConfiguration) {
+      this.targetConfiguration = targetConfiguration;
     }
   }
 
