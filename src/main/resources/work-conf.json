@@ -3,7 +3,7 @@
     {
       "directory": "/home/jsundin/tmp",
       "interval": "1d",
-      "retention-policy": "ignore",
+      "retention-policy": "forget",
       "deleted-files-policy": {
         "keep-forever": true
       },

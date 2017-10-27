@@ -5,7 +5,10 @@
       "interval": "1d",
       "retention-policy": "fail",
       "rules": [],
-      "target": "var-backup-home",
+      "target": {
+        "id": "var-backup",
+        "prefix": "/home"
+      },
       "deletion-policy": {
         "keep-forever": true,
         "just-delete": true,
@@ -23,9 +26,9 @@
   "global-rules": [],
   "targets": [
     {
-      "id": "var-backup-home",
+      "id": "var-backup",
       "driver": "local-file-copy",
-      "target-directory": "/var/backups/homedir",
+      "target-directory": "/var/backups/sbs/",
       "strip-directory-prefix": true,
       "compress-files": true,
       "encrypt-files": true,

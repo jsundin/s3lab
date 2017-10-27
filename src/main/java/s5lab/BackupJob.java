@@ -12,4 +12,12 @@ public class BackupJob {
     this.id = id;
     this.configuration = configuration;
   }
+
+  public UUID getId() {
+    return id;
+  }
+
+  public JobConfiguration getConfiguration() {
+    return configuration;
+  }
 }

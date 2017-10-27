@@ -30,7 +30,7 @@ public class BackupAgentNG {
     if (commandLine.hasOption(S5Lab.OPT_CONFIGURATION)) {
       configurationFile = new File(commandLine.getOptionValue(S5Lab.OPT_CONFIGURATION));
     } else {
-      configurationFile = new File("/home/johdin/projects/s3lab/src/main/resources/work-conf.json"); // TODO: bort i prod!
+      configurationFile = new File("/data/projects/s3lab/src/main/resources/work-conf.json"); // TODO: bort i prod!
     }
     logger.debug("Loading configuration from '{}'", configurationFile);
     Configuration conf;
@@ -96,6 +96,7 @@ public class BackupAgentNG {
                     RetentionPolicy.valueOf(rs.getString("retention_policy"))
             )).stream()
             .collect(Collectors.toMap(k -> k.directory, v -> v));
+    logger.debug("Jobs saved in database: {}", savedJobs.keySet().stream().map(File::toString).collect(Collectors.joining("', '", "'", "'")));
 
     List<SavedJobConfiguration> removedFromConf = savedJobs.values().stream()
             .filter(v -> {
@@ -107,6 +108,7 @@ public class BackupAgentNG {
               return true;
             })
             .collect(Collectors.toList());
+    logger.debug("Jobs saved in database, but no longer in configuration: {}", removedFromConf.stream().map(v -> v.directory.toString()).collect(Collectors.joining("', '", "'", "'")));
 
     List<SavedJobConfiguration> newInConf = new ArrayList<>();
     List<SavedJobConfiguration> updatedInConf = new ArrayList<>();
@@ -126,20 +128,23 @@ public class BackupAgentNG {
         backupJobs.add(new BackupJob(newJob.id, cj));
       }
     }
+    logger.debug("Updated jobs: {}", updatedInConf.stream().map(v -> v.directory.toString()).collect(Collectors.joining("', '", "'", "'")));
+    logger.debug("New jobs: {}", newInConf.stream().map(v -> v.directory.toString()).collect(Collectors.joining("', '", "'", "'")));
+    logger.debug("Backup jobs: {}", backupJobs.stream().map(v -> v.getConfiguration().getDirectory().toString()).collect(Collectors.joining("', '", "'", "'")));
 
     for (SavedJobConfiguration job : removedFromConf) {
       switch (job.retentionPolicy) {
         case FAIL:
-          logger.error("Job '{}' is not allowed to be removed from configuration", job.directory);
+          logger.error("Job '{}' is no longer in configuration, but was previously configured with retention policy 'FAIL'", job.directory);
           break;
 
         case IGNORE:
-          logger.warn("Job '{}' no longer exists in configuration and will be ignored", job.directory);
+          logger.warn("Job '{}' is no longer in configuration and will be ignored", job.directory);
           break;
 
         case FORGET:
           dbClient.getRepository().deleteJob(job.id);
-          logger.warn("Job '{}' was removed in configuration and has been forgotten", job.directory);
+          logger.warn("Job '{}' is no longer in configuration and has been permanently forgotten", job.directory);
           break;
 
         case DELETE_BACKUPS:
