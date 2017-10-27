@@ -134,7 +134,8 @@ public class ConfigurationReader {
               deletedFilesPolicy,
               oldVersionsPolicy,
               backupProvider,
-              targetConfig);
+              targetConfig,
+              job.getFileRules());
       jobConfigurations.add(jobConf);
     }
     return jobConfigurations;

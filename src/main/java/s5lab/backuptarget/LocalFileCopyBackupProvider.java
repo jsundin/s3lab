@@ -33,6 +33,16 @@ public class LocalFileCopyBackupProvider implements BackupProvider {
     return conf;
   }
 
+  @Override
+  public void start() {
+
+  }
+
+  @Override
+  public void finish() {
+
+  }
+
   public void setId(String id) {
     this.id = id;
   }

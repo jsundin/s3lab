@@ -67,6 +67,17 @@ public class DbHandler implements AutoCloseable {
     }
   }
 
+  public boolean uninstall() throws Exception {
+    logger.info("Uninstalling database");
+    try {
+      executeScript(Settings.UNINSTALL_SCRIPT);
+      return true;
+    } catch (SQLException | IOException e) {
+      logger.error("Could not install database", e);
+      throw e;
+    }
+  }
+
   Connection getConnection() {
     try {
       return dataSource.getConnection();

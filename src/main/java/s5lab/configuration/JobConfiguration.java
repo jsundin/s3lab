@@ -5,6 +5,8 @@ import s5lab.backuptarget.BackupProvider;
 import s5lab.backuptarget.JobTargetConfiguration;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public class JobConfiguration {
   private final File directory;
@@ -14,8 +16,9 @@ public class JobConfiguration {
   private final FileVersioningPolicy oldVersionsPolicy;
   private final BackupProvider backupProvider;
   private final JobTargetConfiguration targetConfiguration;
+  private final List<FileRule> fileRules;
 
-  public JobConfiguration(File directory, RetentionPolicy retentionPolicy, long interval, FileVersioningPolicy deletedFilesPolicy, FileVersioningPolicy oldVersionsPolicy, BackupProvider backupProvider, JobTargetConfiguration targetConfiguration) {
+  public JobConfiguration(File directory, RetentionPolicy retentionPolicy, long interval, FileVersioningPolicy deletedFilesPolicy, FileVersioningPolicy oldVersionsPolicy, BackupProvider backupProvider, JobTargetConfiguration targetConfiguration, List<FileRule> fileRules) {
     if (retentionPolicy == null) {
       throw new IllegalStateException("NULL is not allowed for retentionPolicy");
     }
@@ -36,6 +39,7 @@ public class JobConfiguration {
     this.interval = interval;
     this.backupProvider = backupProvider;
     this.targetConfiguration = targetConfiguration;
+    this.fileRules = Collections.unmodifiableList(fileRules);
   }
 
   public File getDirectory() {
@@ -52,6 +56,10 @@ public class JobConfiguration {
 
   public JobTargetConfiguration getTargetConfiguration() {
     return targetConfiguration;
+  }
+
+  public List<FileRule> getFileRules() {
+    return fileRules;
   }
 
   public static class FileVersioningPolicy {

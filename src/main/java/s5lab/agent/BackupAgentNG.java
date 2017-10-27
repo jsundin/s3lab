@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s5lab.BackupJob;
 import s5lab.S5Lab;
+import s5lab.backuptarget.BackupProvider;
 import s5lab.configuration.Configuration;
 import s5lab.configuration.ConfigurationReader;
 import s5lab.configuration.JobConfiguration;
@@ -64,7 +65,10 @@ public class BackupAgentNG {
       return false;
     }
 
-    BackupAgentContext ctx = new BackupAgentContext(dbHandler.getClient(), notificationService);
+    FilescannerThread filescannerThread = new FilescannerThread(dbHandler.getClient());
+    filescannerThread.start();
+
+    BackupAgentContext ctx = new BackupAgentContext(dbHandler.getClient(), notificationService, filescannerThread.filescannerQueue);
     try {
       runAgent(ctx, conf, jobs);
     } catch (Throwable t) {
@@ -75,6 +79,7 @@ public class BackupAgentNG {
               .withException(t)
               .build());
     }
+    filescannerThread.finish(true);
 
     try {
       dbHandler.close();
@@ -86,8 +91,17 @@ public class BackupAgentNG {
   }
 
   private void runAgent(BackupAgentContext ctx, Configuration conf, List<BackupJob> jobs) {
+    for (BackupProvider backupProvider : conf.getBackupProviders()) {
+      backupProvider.start();
+    }
+
     for (BackupJob job : jobs) {
-      System.out.println(job.getConfiguration().getBackupProvider() + ": " + job.getConfiguration().getTargetConfiguration());
+      BackupJobRunner runner = new BackupJobRunner(job, ctx);
+      runner.wrappedRun();
+    }
+
+    for (BackupProvider backupProvider : conf.getBackupProviders()) {
+      backupProvider.finish();
     }
   }
 

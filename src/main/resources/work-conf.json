@@ -2,6 +2,26 @@
   "jobs": [
     {
       "directory": "/home/jsundin/tmp",
+      "rules": [
+        {
+          "rule": "exclude-symlinks"
+        },
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/squash/"
+        },
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/nuc/"
+        },
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/old-stuff/"
+        },
+        {
+          "rule": "exclude-hidden-files"
+        }
+      ],
       "interval": "1d",
       "retention-policy": "forget",
       "deleted-files-policy": {

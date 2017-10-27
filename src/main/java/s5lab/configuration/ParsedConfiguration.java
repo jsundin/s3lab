@@ -60,6 +60,16 @@ class ParsedConfiguration {
     private JobDeletedFilesPolicy deletedFilesPolicy;
     private JobOldVersionsPolicy oldVersionsPolicy;
     private Map<String, Object> targetConfiguration;
+    private List<FileRule> fileRules;
+
+    public List<FileRule> getFileRules() {
+      return fileRules;
+    }
+
+    @JsonProperty("rules")
+    public void setFileRules(List<FileRule> fileRules) {
+      this.fileRules = fileRules;
+    }
 
     public Long getIntervalInMinutes() {
       return intervalInMinutes;

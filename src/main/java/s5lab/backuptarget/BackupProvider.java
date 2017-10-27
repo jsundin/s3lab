@@ -13,4 +13,7 @@ import java.util.Map;
 public interface BackupProvider {
   String getId();
   JobTargetConfiguration parseJobTargetConfiguration(Map<String, Object> configuration) throws ConfigurationException;
+
+  void start();
+  void finish();
 }
