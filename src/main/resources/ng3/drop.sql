@@ -1,2 +1,2 @@
 drop table directory;
-drop table state;
+drop table plan;

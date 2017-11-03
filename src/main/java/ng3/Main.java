@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import s5lab.Settings;
 
 import java.io.File;
+import java.util.UUID;
 
 public class Main {
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -67,7 +68,16 @@ public class Main {
       dbHandler.install();
     }
 
-    BackupAgent backupAgent = new BackupAgent(agentParams, dbHandler.getClient(), conf);
+    UUID planId = dbHandler.getClient().buildQuery("select plan_id from plan")
+            .executeQueryForObject(rs -> rs.getUuid(1));
+    if (planId == null) {
+      planId = UUID.randomUUID();
+      dbHandler.getClient().buildQuery("insert into plan (plan_id) values (?)")
+              .withParam().uuidValue(1, planId)
+              .executeUpdate();
+    }
+
+    BackupAgent backupAgent = new BackupAgent(agentParams, planId, dbHandler.getClient(), conf);
     boolean success;
 
     try {

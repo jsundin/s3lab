@@ -5,9 +5,14 @@ import java.util.concurrent.Semaphore;
 
 abstract public class ScheduledTask implements Runnable {
   private final Semaphore semaphore = new Semaphore(1);
+  private final ErrorCallback errorCallback;
   private final Object lock = new Object();
   private volatile ScheduledFuture<?> future;
   private int executionCount;
+
+  protected ScheduledTask(ErrorCallback errorCallback) {
+    this.errorCallback = errorCallback;
+  }
 
   @Override
   public void run() {
@@ -18,9 +23,15 @@ abstract public class ScheduledTask implements Runnable {
       if (performTask()) {
         scheduleTask();
       }
-    } finally {
+    } catch (Throwable t) {
       semaphore.release();
+      if (errorCallback != null) {
+        errorCallback.run(t);
+      }
+      return;
     }
+
+    semaphore.release();
   }
 
   public void scheduleTask() {

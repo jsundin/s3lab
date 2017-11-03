@@ -1,6 +1,8 @@
 package ng3.db;
 
-import ng3.BackupState;
+import ng3.BackupPlan;
+
+import java.util.UUID;
 
 public class DbClient {
   private final DbHandler dbHandler;
@@ -13,25 +15,21 @@ public class DbClient {
     return new QueryBuilder(dbHandler.getConnection()).withStatement(sql);
   }
 
-  public BackupState getBackupState() {
-    BackupState state = buildQuery("select last_started from state")
-            .executeQueryForObject(rs -> new BackupState(
-                    rs.getTimestamp(1)
-            ));
-    if (state == null) {
-      state = new BackupState(null);
-    }
-    return state;
+  public BackupPlan getBackupPlan(UUID planId) {
+    BackupPlan plan = buildQuery("select plan_id, last_started from plan where plan_id=?")
+            .withParam().uuidValue(1, planId)
+            .executeQueryForObject(rs -> {
+              BackupPlan rplan = new BackupPlan(rs.getUuid(1));
+              rplan.setLastStarted(rs.getTimestamp(2));
+              return rplan;
+            });
+    return plan;
   }
 
-  public void saveBackupState(BackupState state) {
-    int updates = buildQuery("update state set last_started=?")
-            .withParam().timestampValue(1, state.getLastStarted())
+  public void saveBackupPlan(BackupPlan plan) {
+    buildQuery("update plan set last_started=? where plan_id=?")
+            .withParam().timestampValue(1, plan.getLastStarted())
+            .withParam().uuidValue(2, plan.getId())
             .executeUpdate();
-    if (updates == 0) {
-      buildQuery("insert into state (last_started) values (?)")
-              .withParam().timestampValue(1, state.getLastStarted())
-              .executeUpdate();
-    }
   }
 }

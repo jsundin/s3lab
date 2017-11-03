@@ -1,7 +1,8 @@
 package ng3.agent;
 
-import ng3.BackupState;
+import ng3.BackupPlan;
 import ng3.common.BlockingLatch;
+import ng3.common.ErrorCallback;
 import ng3.common.ScheduledTask;
 import ng3.conf.Configuration;
 import ng3.db.DbClient;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -17,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 class ScheduledBackupTask extends ScheduledTask {
   private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final UUID planId;
   private final DbClient dbClient;
   private final Configuration configuration;
   private final boolean reschedule;
@@ -24,7 +27,9 @@ class ScheduledBackupTask extends ScheduledTask {
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> new Thread(r, "BackupTask"));
   private final Runnable callback;
 
-  ScheduledBackupTask(DbClient dbClient, Configuration configuration, boolean reschedule, BlockingLatch blockingLatch, Runnable callback) {
+  ScheduledBackupTask(UUID planId, DbClient dbClient, Configuration configuration, boolean reschedule, BlockingLatch blockingLatch, Runnable callback, ErrorCallback errorCallback) {
+    super(errorCallback);
+    this.planId = planId;
     this.dbClient = dbClient;
     this.configuration = configuration;
     this.reschedule = reschedule;
@@ -39,9 +44,9 @@ class ScheduledBackupTask extends ScheduledTask {
 
   @Override
   protected boolean performTask() {
-    BackupState state = dbClient.getBackupState();
-    state.setLastStarted(ZonedDateTime.now());
-    dbClient.saveBackupState(state);
+    BackupPlan backupPlan = dbClient.getBackupPlan(planId);
+    backupPlan.setLastStarted(ZonedDateTime.now());
+    dbClient.saveBackupPlan(backupPlan);
 
     try {
       callback.run();
@@ -61,9 +66,9 @@ class ScheduledBackupTask extends ScheduledTask {
   protected ScheduledFuture<?> scheduleFuture(boolean forceNow) {
     ZonedDateTime next = null;
     if (!forceNow) {
-      BackupState state = dbClient.getBackupState();
-      if (state != null && state.getLastStarted() != null) {
-        next = state.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
+      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
+      if (backupPlan.getLastStarted() != null) {
+        next = backupPlan.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
         if (next.isBefore(ZonedDateTime.now())) {
           next = null;
         }

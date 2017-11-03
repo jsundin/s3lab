@@ -21,12 +21,14 @@ import java.util.stream.Collectors;
 public class BackupAgent {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final BackupAgentParams params;
+  private final UUID planId;
   private final DbClient dbClient;
   private final Configuration configuration;
   private final BlockingLatch executionLatch = new BlockingLatch("ExecutionLatch");
 
-  public BackupAgent(BackupAgentParams params, DbClient dbClient, Configuration configuration) {
+  public BackupAgent(BackupAgentParams params, UUID planId, DbClient dbClient, Configuration configuration) {
     this.params = params;
+    this.planId = planId;
     this.dbClient = dbClient;
     this.configuration = configuration;
   }
@@ -39,7 +41,7 @@ public class BackupAgent {
       }
       logger.debug("All configured directories seem to be accessible");
     }
-    
+
     executionLatch.start();
     PidFileWriter pidFileWriter = null;
     if (params.getPidFile() != null) {
@@ -50,7 +52,12 @@ public class BackupAgent {
     }
 
     long t0 = System.currentTimeMillis();
-    ScheduledBackupTask backupTask = new ScheduledBackupTask(dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories));
+    final boolean[] success = {true};
+    ScheduledBackupTask backupTask = new ScheduledBackupTask(planId, dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories), (t) -> {
+      logger.error("An unhandled error occurred", t);
+      executionLatch.release();
+      success[0] = false;
+    });
     backupTask.scheduleTask(params.isForceBackupNow());
 
     executionLatch.joinUninterruptibly();
@@ -60,7 +67,7 @@ public class BackupAgent {
     }
 
     logger.info("Executed {} backups in {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0));
-    return true;
+    return success[0];
   }
 
   private void executeJob(List<BackupDirectory> backupDirectories) {
@@ -98,7 +105,8 @@ public class BackupAgent {
   }
 
   private List<BackupDirectory> findBackupDirectories() {
-    Map<File, ConfiguredDirectory> savedDirectories = dbClient.buildQuery("select directory_id, directory from directory")
+    Map<File, ConfiguredDirectory> savedDirectories = dbClient.buildQuery("select directory_id, directory from directory where plan_id=?")
+            .withParam().uuidValue(1, planId)
             .executeQuery(rs -> new ConfiguredDirectory(
                     rs.getUuid(1),
                     rs.getFile(2)
@@ -128,10 +136,11 @@ public class BackupAgent {
       }
     }
 
-    dbClient.buildQuery("insert into directory (directory_id, directory) values (?, ?)")
+    dbClient.buildQuery("insert into directory (directory_id, plan_id, directory) values (?, ?, ?)")
             .executeUpdate(newDirectories, (s, v) -> {
               v.uuidValue(1, s.getId());
-              v.fileValue(2, s.getConfiguration().getDirectory());
+              v.uuidValue(2, planId);
+              v.fileValue(3, s.getConfiguration().getDirectory());
             });
     backupDirectories.addAll(newDirectories);
 
