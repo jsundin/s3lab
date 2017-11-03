@@ -2,7 +2,7 @@ package ng3.agent;
 
 import ng3.BackupDirectory;
 import ng3.common.BlockingLatch;
-import ng3.common.PidFileWriter;
+import ng3.common.PidfileWriter;
 import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
@@ -21,13 +21,15 @@ import java.util.stream.Collectors;
 public class BackupAgent {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final BackupAgentParams params;
+  private final PidfileWriter pidfileWriter;
   private final UUID planId;
   private final DbClient dbClient;
   private final Configuration configuration;
   private final BlockingLatch executionLatch = new BlockingLatch("ExecutionLatch");
 
-  public BackupAgent(BackupAgentParams params, UUID planId, DbClient dbClient, Configuration configuration) {
+  public BackupAgent(BackupAgentParams params, PidfileWriter pidfileWriter, UUID planId, DbClient dbClient, Configuration configuration) {
     this.params = params;
+    this.pidfileWriter = pidfileWriter;
     this.planId = planId;
     this.dbClient = dbClient;
     this.configuration = configuration;
@@ -43,12 +45,8 @@ public class BackupAgent {
     }
 
     executionLatch.start();
-    PidFileWriter pidFileWriter = null;
-    if (params.getPidFile() != null) {
-      pidFileWriter = new PidFileWriter(params.getPidFile(), executionLatch);
-      if (!pidFileWriter.start()) {
-        return false;
-      }
+    if (pidfileWriter != null) {
+      pidfileWriter.addStakeholder(executionLatch);
     }
 
     long t0 = System.currentTimeMillis();
@@ -62,9 +60,6 @@ public class BackupAgent {
 
     executionLatch.joinUninterruptibly();
     backupTask.shutdown();
-    if (pidFileWriter != null) {
-      pidFileWriter.finish();
-    }
 
     logger.info("Executed {} backups in {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0));
     return success[0];

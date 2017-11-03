@@ -7,16 +7,17 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.List;
 
-public class PidFileWriter {
+public class PidfileWriter {
   private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final List<BlockingLatch> stakeholders = new ArrayList<>();
   private final File file;
-  private final BlockingLatch blockingLatch;
   private volatile boolean finished = false;
 
-  public PidFileWriter(File file, BlockingLatch blockingLatch) {
+  public PidfileWriter(File file) {
     this.file = file;
-    this.blockingLatch = blockingLatch;
   }
 
   public boolean start() {
@@ -43,6 +44,12 @@ public class PidFileWriter {
     return true;
   }
 
+  public void addStakeholder(BlockingLatch latch) {
+    synchronized (stakeholders) {
+      stakeholders.add(latch);
+    }
+  }
+
   public void finish() {
     finished = true;
     if (file.exists()) {
@@ -57,7 +64,11 @@ public class PidFileWriter {
       while (!finished) {
         if (!file.exists()) {
           logger.debug("'{}' was removed", file);
-          blockingLatch.release();
+          synchronized (stakeholders) {
+            for (BlockingLatch stakeholder : stakeholders) {
+              stakeholder.release();
+            }
+          }
           break;
         }
 

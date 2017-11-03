@@ -2,6 +2,7 @@ package ng3;
 
 import ng3.agent.BackupAgent;
 import ng3.agent.BackupAgentParams;
+import ng3.common.PidfileWriter;
 import ng3.conf.Configuration;
 import ng3.conf.ConfigurationParser;
 import ng3.db.DbHandler;
@@ -50,9 +51,6 @@ public class Main {
     agentParams.setFailOnBadDirectories(commandLine.hasOption(OPT_FAIL_ON_BAD_DIRECTORIES));
     agentParams.setForceBackupNow(commandLine.hasOption(OPT_FORCE_BACKUP_NOW));
     agentParams.setRunOnce(commandLine.hasOption(OPT_RUN_ONCE));
-    if (commandLine.hasOption(OPT_PIDFILE)) {
-      agentParams.setPidFile(new File(commandLine.getOptionValue(OPT_PIDFILE)));
-    }
 
     File confFile = new File(commandLine.getOptionValue(OPT_CONFIGURATION));
     logger.debug("Loading configuration from '{}'", confFile);
@@ -77,7 +75,14 @@ public class Main {
               .executeUpdate();
     }
 
-    BackupAgent backupAgent = new BackupAgent(agentParams, planId, dbHandler.getClient(), conf);
+    PidfileWriter pidfileWriter = null;
+    if (commandLine.hasOption(OPT_PIDFILE)) {
+      File pidfile = new File(commandLine.getOptionValue(OPT_PIDFILE));
+      pidfileWriter = new PidfileWriter(pidfile);
+      pidfileWriter.start();
+    }
+
+    BackupAgent backupAgent = new BackupAgent(agentParams, pidfileWriter, planId, dbHandler.getClient(), conf);
     boolean success;
 
     try {
@@ -88,6 +93,9 @@ public class Main {
       success = false;
     }
 
+    if (pidfileWriter != null) {
+      pidfileWriter.finish();
+    }
     dbHandler.close();
 
     return success;
