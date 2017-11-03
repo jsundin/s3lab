@@ -39,14 +39,7 @@ public class BackupAgent {
       }
       logger.debug("All configured directories seem to be accessible");
     }
-
-    BackupAgentContext ctx = new BackupAgentContext(dbClient, backupDirectories, configuration);
-    boolean success = run(ctx);
-
-    return success;
-  }
-
-  private boolean run(BackupAgentContext ctx) {
+    
     executionLatch.start();
     PidFileWriter pidFileWriter = null;
     if (params.getPidFile() != null) {
@@ -57,7 +50,7 @@ public class BackupAgent {
     }
 
     long t0 = System.currentTimeMillis();
-    ScheduledBackupTask backupTask = new ScheduledBackupTask(dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(ctx.backupDirectories));
+    ScheduledBackupTask backupTask = new ScheduledBackupTask(dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories));
     backupTask.scheduleTask(params.isForceBackupNow());
 
     executionLatch.joinUninterruptibly();
@@ -153,18 +146,6 @@ public class BackupAgent {
     private ConfiguredDirectory(UUID id, File directory) {
       this.id = id;
       this.directory = directory;
-    }
-  }
-
-  class BackupAgentContext {
-    final DbClient dbClient;
-    final List<BackupDirectory> backupDirectories;
-    final Configuration configuration;
-
-    private BackupAgentContext(DbClient dbClient, List<BackupDirectory> backupDirectories, Configuration configuration) {
-      this.dbClient = dbClient;
-      this.backupDirectories = backupDirectories;
-      this.configuration = configuration;
     }
   }
 }
