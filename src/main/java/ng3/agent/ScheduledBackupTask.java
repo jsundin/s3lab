@@ -48,13 +48,7 @@ class ScheduledBackupTask extends ScheduledTask {
     backupPlan.setLastStarted(ZonedDateTime.now());
     dbClient.saveBackupPlan(backupPlan);
 
-    try {
-      callback.run();
-    } catch (Throwable t) {
-      logger.error("Caught unexpected error - trying to quit", t);
-      blockingLatch.release();
-      return false;
-    }
+    callback.run();
 
     if (!reschedule) {
       notifyFinish();
