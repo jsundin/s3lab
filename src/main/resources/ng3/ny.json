@@ -1,0 +1,11 @@
+{
+  "directories": [
+    {
+      "directory": "/home/jsundin/tmp"
+    }
+  ],
+  "interval": "1m",
+  "database": {
+    "url": "jdbc:derby:ng3;create=true"
+  }
+}

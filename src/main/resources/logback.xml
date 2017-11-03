@@ -29,6 +29,11 @@
         </encoder>
     </appender>
 
+    <logger name="ng3" level="${app_level}" additivity="false">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDERR" />
+    </logger>
+
     <logger name="s5lab" level="${app_level}" additivity="false">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="STDERR" />
