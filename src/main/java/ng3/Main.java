@@ -3,6 +3,7 @@ package ng3;
 import ng3.agent.BackupAgent;
 import ng3.agent.BackupAgentParams;
 import ng3.common.PidfileWriter;
+import ng3.common.LatchSynchronizer;
 import ng3.conf.Configuration;
 import ng3.conf.ConfigurationParser;
 import ng3.db.DbHandler;
@@ -75,14 +76,16 @@ public class Main {
               .executeUpdate();
     }
 
+    LatchSynchronizer shutdownSynchronizer = new LatchSynchronizer();
+
     PidfileWriter pidfileWriter = null;
     if (commandLine.hasOption(OPT_PIDFILE)) {
       File pidfile = new File(commandLine.getOptionValue(OPT_PIDFILE));
-      pidfileWriter = new PidfileWriter(pidfile);
+      pidfileWriter = new PidfileWriter(pidfile, shutdownSynchronizer);
       pidfileWriter.start();
     }
 
-    BackupAgent backupAgent = new BackupAgent(agentParams, pidfileWriter, planId, dbHandler.getClient(), conf);
+    BackupAgent backupAgent = new BackupAgent(agentParams, shutdownSynchronizer, planId, dbHandler.getClient(), conf);
     boolean success;
 
     try {
