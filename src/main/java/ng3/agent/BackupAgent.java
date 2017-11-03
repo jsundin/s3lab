@@ -49,8 +49,8 @@ public class BackupAgent {
 
     long t0 = System.currentTimeMillis();
     final boolean[] success = {true};
-    ScheduledBackupTask backupTask = new ScheduledBackupTask(planId, dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories), (t) -> {
-      logger.error("An unhandled error occurred", t);
+    ScheduledBackupTask backupTask = new ScheduledBackupTask(planId, dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories), (error) -> {
+      logger.error("An unhandled error occurred", error);
       executionLatch.release();
       success[0] = false;
     });
