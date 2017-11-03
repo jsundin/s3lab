@@ -7,10 +7,12 @@ abstract public class ScheduledTask implements Runnable {
   private final Semaphore semaphore = new Semaphore(1);
   private final Object lock = new Object();
   private volatile ScheduledFuture<?> future;
+  private int executionCount;
 
   @Override
   public void run() {
     semaphore.acquireUninterruptibly();
+    executionCount++;
 
     try {
       if (performTask()) {
@@ -41,6 +43,10 @@ abstract public class ScheduledTask implements Runnable {
     }
 
     semaphore.acquireUninterruptibly();
+  }
+
+  public int getExecutionCount() {
+    return executionCount;
   }
 
   abstract protected boolean performTask();

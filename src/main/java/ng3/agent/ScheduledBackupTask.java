@@ -3,6 +3,8 @@ package ng3.agent;
 import ng3.BackupState;
 import ng3.common.BlockingLatch;
 import ng3.common.ScheduledTask;
+import ng3.conf.Configuration;
+import ng3.db.DbClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,15 +17,16 @@ import java.util.concurrent.TimeUnit;
 
 class ScheduledBackupTask extends ScheduledTask {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final BackupAgent.BackupAgentContext ctx;
+  private final DbClient dbClient;
+  private final Configuration configuration;
   private final boolean reschedule;
   private final BlockingLatch blockingLatch;
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> new Thread(r, "BackupTask"));
-  private final ScheduledBackupJob callback;
-  private int executionCount = 0;
+  private final Runnable callback;
 
-  ScheduledBackupTask(BackupAgent.BackupAgentContext ctx, boolean reschedule, BlockingLatch blockingLatch, ScheduledBackupJob callback) {
-    this.ctx = ctx;
+  ScheduledBackupTask(DbClient dbClient, Configuration configuration, boolean reschedule, BlockingLatch blockingLatch, Runnable callback) {
+    this.dbClient = dbClient;
+    this.configuration = configuration;
     this.reschedule = reschedule;
     this.blockingLatch = blockingLatch;
     this.callback = callback;
@@ -36,13 +39,12 @@ class ScheduledBackupTask extends ScheduledTask {
 
   @Override
   protected boolean performTask() {
-    executionCount++;
-    BackupState state = ctx.dbClient.getBackupState();
+    BackupState state = dbClient.getBackupState();
     state.setLastStarted(ZonedDateTime.now());
-    ctx.dbClient.saveBackupState(state);
+    dbClient.saveBackupState(state);
 
     try {
-      callback.runBackupJob(ctx);
+      callback.run();
     } catch (Throwable t) {
       logger.error("Caught unexpected error - trying to quit", t);
       blockingLatch.release();
@@ -59,9 +61,9 @@ class ScheduledBackupTask extends ScheduledTask {
   protected ScheduledFuture<?> scheduleFuture(boolean forceNow) {
     ZonedDateTime next = null;
     if (!forceNow) {
-      BackupState state = ctx.dbClient.getBackupState();
+      BackupState state = dbClient.getBackupState();
       if (state != null && state.getLastStarted() != null) {
-        next = state.getLastStarted().plusMinutes(ctx.configuration.getIntervalInMinutes());
+        next = state.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
         if (next.isBefore(ZonedDateTime.now())) {
           next = null;
         }
@@ -77,15 +79,7 @@ class ScheduledBackupTask extends ScheduledTask {
     }
   }
 
-  int getExecutionCount() {
-    return executionCount;
-  }
-
   private void notifyFinish() {
     blockingLatch.release();
-  }
-
-  interface ScheduledBackupJob {
-    void runBackupJob(BackupAgent.BackupAgentContext ctx);
   }
 }

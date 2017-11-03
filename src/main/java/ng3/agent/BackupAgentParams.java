@@ -3,8 +3,6 @@ package ng3.agent;
 import java.io.File;
 
 public class BackupAgentParams {
-  private File configurationFile;
-  private boolean onlyTestConfiguration;
   private boolean failOnBadDirectories;
   private boolean forceBackupNow;
   private boolean runOnce;
@@ -40,21 +38,5 @@ public class BackupAgentParams {
 
   public void setFailOnBadDirectories(boolean failOnBadDirectories) {
     this.failOnBadDirectories = failOnBadDirectories;
-  }
-
-  public File getConfigurationFile() {
-    return configurationFile;
-  }
-
-  public void setConfigurationFile(File configurationFile) {
-    this.configurationFile = configurationFile;
-  }
-
-  public boolean isOnlyTestConfiguration() {
-    return onlyTestConfiguration;
-  }
-
-  public void setOnlyTestConfiguration(boolean onlyTestConfiguration) {
-    this.onlyTestConfiguration = onlyTestConfiguration;
   }
 }

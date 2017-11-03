@@ -4,10 +4,8 @@ import ng3.BackupDirectory;
 import ng3.common.BlockingLatch;
 import ng3.common.PidFileWriter;
 import ng3.conf.Configuration;
-import ng3.conf.ConfigurationParser;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
-import ng3.db.DbHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
@@ -23,39 +21,28 @@ import java.util.stream.Collectors;
 public class BackupAgent {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final BackupAgentParams params;
+  private final DbClient dbClient;
+  private final Configuration configuration;
   private final BlockingLatch executionLatch = new BlockingLatch("ExecutionLatch");
 
-  public BackupAgent(BackupAgentParams params) {
+  public BackupAgent(BackupAgentParams params, DbClient dbClient, Configuration configuration) {
     this.params = params;
+    this.dbClient = dbClient;
+    this.configuration = configuration;
   }
 
   public boolean run() throws Exception {
-    logger.debug("Loading configuration from '{}'", params.getConfigurationFile());
-    Configuration conf = new ConfigurationParser().parseConfiguration(params.getConfigurationFile());
-    if (params.isOnlyTestConfiguration()) {
-      logger.debug("BackupAgent instructed to only check configuration, and configuration was ok");
-      return true;
-    }
-
-    DbHandler dbHandler = new DbHandler(conf.getDatabase());
-    if (!dbHandler.isInstalled()) {
-      logger.info("Installing database");
-      dbHandler.install();
-    }
-
-    List<BackupDirectory> backupDirectories = findBackupDirectories(dbHandler.getClient(), conf.getDirectories());
+    List<BackupDirectory> backupDirectories = findBackupDirectories();
     if (params.isFailOnBadDirectories()) {
       if (!checkDirectories(backupDirectories)) {
-        dbHandler.close();
         return false;
       }
       logger.debug("All configured directories seem to be accessible");
     }
 
-    BackupAgentContext ctx = new BackupAgentContext(dbHandler.getClient(), backupDirectories, conf);
+    BackupAgentContext ctx = new BackupAgentContext(dbClient, backupDirectories, configuration);
     boolean success = run(ctx);
 
-    dbHandler.close();
     return success;
   }
 
@@ -70,20 +57,20 @@ public class BackupAgent {
     }
 
     long t0 = System.currentTimeMillis();
-    ScheduledBackupTask task = new ScheduledBackupTask(ctx, !params.isRunOnce(), executionLatch, this::executeJob);
-    task.scheduleTask(params.isForceBackupNow());
+    ScheduledBackupTask backupTask = new ScheduledBackupTask(dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(ctx.backupDirectories));
+    backupTask.scheduleTask(params.isForceBackupNow());
 
     executionLatch.joinUninterruptibly();
-    task.shutdown();
+    backupTask.shutdown();
     if (pidFileWriter != null) {
       pidFileWriter.finish();
     }
 
-    logger.info("Executed {} backups in {}", task.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0));
+    logger.info("Executed {} backups in {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0));
     return true;
   }
 
-  private void executeJob(BackupAgentContext ctx) {
+  private void executeJob(List<BackupDirectory> backupDirectories) {
     BackupReport report = new BackupReport();
     report.setStartedAt(ZonedDateTime.now());
 
@@ -117,7 +104,7 @@ public class BackupAgent {
     return !hasErrors;
   }
 
-  private List<BackupDirectory> findBackupDirectories(DbClient dbClient, List<DirectoryConfiguration> directories) {
+  private List<BackupDirectory> findBackupDirectories() {
     Map<File, ConfiguredDirectory> savedDirectories = dbClient.buildQuery("select directory_id, directory from directory")
             .executeQuery(rs -> new ConfiguredDirectory(
                     rs.getUuid(1),
@@ -127,7 +114,7 @@ public class BackupAgent {
 
     List<ConfiguredDirectory> removedDirectories = savedDirectories.values().stream()
             .filter(v -> {
-              for (DirectoryConfiguration dir : directories) {
+              for (DirectoryConfiguration dir : configuration.getDirectories()) {
                 if (dir.getDirectory().equals(v.directory)) {
                   return false;
                 }
@@ -138,7 +125,7 @@ public class BackupAgent {
 
     List<BackupDirectory> backupDirectories = new ArrayList<>();
     List<BackupDirectory> newDirectories = new ArrayList<>();
-    for (DirectoryConfiguration directory : directories) {
+    for (DirectoryConfiguration directory : configuration.getDirectories()) {
       if (savedDirectories.containsKey(directory.getDirectory())) {
         BackupDirectory backupDirectory = new BackupDirectory(savedDirectories.get(directory.getDirectory()).id, directory);
         backupDirectories.add(backupDirectory);

@@ -2,12 +2,18 @@ package ng3;
 
 import ng3.agent.BackupAgent;
 import ng3.agent.BackupAgentParams;
+import ng3.conf.Configuration;
+import ng3.conf.ConfigurationParser;
+import ng3.db.DbHandler;
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import s5lab.Settings;
 
 import java.io.File;
 
 public class Main {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private static final String OPT_HELP = "h";
   private static final String OPT_TEST_CONFIGURATION = "tc";
   private static final String OPT_CONFIGURATION = "c";
@@ -28,9 +34,18 @@ public class Main {
       System.exit(1);
     }
 
+    boolean success;
+    try {
+      success = new Main().run(commandLine);
+    } catch (Throwable t) {
+      t.printStackTrace();
+      success = false;
+    }
+    System.exit(success ? 0 : 1);
+  }
+
+  private boolean run(CommandLine commandLine) throws Exception {
     BackupAgentParams agentParams = new BackupAgentParams();
-    agentParams.setConfigurationFile(new File(commandLine.getOptionValue(OPT_CONFIGURATION)));
-    agentParams.setOnlyTestConfiguration(commandLine.hasOption(OPT_TEST_CONFIGURATION));
     agentParams.setFailOnBadDirectories(commandLine.hasOption(OPT_FAIL_ON_BAD_DIRECTORIES));
     agentParams.setForceBackupNow(commandLine.hasOption(OPT_FORCE_BACKUP_NOW));
     agentParams.setRunOnce(commandLine.hasOption(OPT_RUN_ONCE));
@@ -38,7 +53,21 @@ public class Main {
       agentParams.setPidFile(new File(commandLine.getOptionValue(OPT_PIDFILE)));
     }
 
-    BackupAgent backupAgent = new BackupAgent(agentParams);
+    File confFile = new File(commandLine.getOptionValue(OPT_CONFIGURATION));
+    logger.debug("Loading configuration from '{}'", confFile);
+    Configuration conf = new ConfigurationParser().parseConfiguration(confFile);
+    if (commandLine.hasOption(OPT_TEST_CONFIGURATION)) {
+      logger.debug("Configuration is ok");
+      return true;
+    }
+
+    DbHandler dbHandler = new DbHandler(conf.getDatabase());
+    if (!dbHandler.isInstalled()) {
+      logger.info("Installing database");
+      dbHandler.install();
+    }
+
+    BackupAgent backupAgent = new BackupAgent(agentParams, dbHandler.getClient(), conf);
     boolean success;
 
     try {
@@ -49,7 +78,9 @@ public class Main {
       success = false;
     }
 
-    System.exit(success ? 0 : 1);
+    dbHandler.close();
+
+    return success;
   }
 
   private static CommandLine parseCommandline(String[] args) throws ParseException {
