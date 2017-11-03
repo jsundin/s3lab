@@ -34,8 +34,9 @@ class FilescannerThread extends Thread {
 
   @Override
   public void run() {
-    logger.info("watching filescannerQueue");
-    int itemsProcessed = 0;
+    logger.info("Watching filescannerQueue");
+    long itemsProcessed = 0;
+    long itemsInsertedOrUpdated = 0;
 
     while (!finished || (finished && graceful && !filescannerQueue.isEmpty())) {
       FilescannerEvent event;
@@ -49,38 +50,39 @@ class FilescannerThread extends Thread {
       }
 
       itemsProcessed++;
-      FileXYZ xyz = dbClient.buildQuery("select id, last_modified, last_upload_start, last_upload_finished from file where job_id=? and filename=?")
+      ExistingFile existingFile = dbClient.buildQuery("select id, last_modified, last_upload_start, last_upload_finished from file where job_id=? and filename=?")
               .withParam().uuidValue(1, event.getJobId())
               .withParam().fileValue(2, event.getFile())
               .executeQueryForObject(rs -> {
-                FileXYZ fxyz = new FileXYZ();
-                fxyz.id = rs.getUuid(1);
-                fxyz.lastModified = rs.getTimestamp(2);
-                fxyz.lastUploadStart = rs.getTimestamp(3);
-                fxyz.lastUploadFinished = rs.getTimestamp(4);
-                return fxyz;
+                ExistingFile ref = new ExistingFile();
+                ref.id = rs.getUuid(1);
+                ref.lastModified = rs.getTimestamp(2);
+                ref.lastUploadStart = rs.getTimestamp(3);
+                ref.lastUploadFinished = rs.getTimestamp(4);
+                return ref;
               });
 
       ZonedDateTime lastModified = FileTools.lastModified(event.getFile());
-      System.out.println(event.getFile() + ": " + xyz);
-      if (xyz == null) {
-        dbClient.buildQuery("insert into file (id, job_id, filename, last_modified) values (?, ?, ?, ?)")
+      if (existingFile == null) {
+        itemsInsertedOrUpdated += dbClient.buildQuery("insert into file (id, job_id, filename, last_modified) values (?, ?, ?, ?)")
                 .withParam().uuidValue(1, UUID.randomUUID())
                 .withParam().uuidValue(2, event.getJobId())
                 .withParam().fileValue(3, event.getFile())
                 .withParam().timestampValue(4, lastModified)
                 .executeUpdate();
       } else {
-        dbClient.buildQuery("update file set last_modified=? where id=?")
-                .withParam().timestampValue(1, lastModified)
-                .withParam().uuidValue(2, xyz.id)
-                .executeUpdate();
+        if (existingFile.lastModified.isBefore(lastModified)) {
+          itemsInsertedOrUpdated += dbClient.buildQuery("update file set last_modified=? where id=?")
+              .withParam().timestampValue(1, lastModified)
+              .withParam().uuidValue(2, existingFile.id)
+              .executeUpdate();
+        }
       }
     }
-    logger.info("Stopped watching filescannerQueue with {} items left ({} processed)", filescannerQueue.size(), itemsProcessed);
+    logger.info("Stopped watching filescannerQueue with {} items left ({} processed, {} inserted/updated)", filescannerQueue.size(), itemsProcessed, itemsInsertedOrUpdated);
   }
 
-  private class FileXYZ {
+  private class ExistingFile {
     UUID id;
     ZonedDateTime lastModified;
     ZonedDateTime lastUploadStart;

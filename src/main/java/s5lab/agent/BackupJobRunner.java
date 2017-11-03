@@ -8,8 +8,9 @@ import s5lab.configuration.FileRule;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-public class BackupJobRunner {
+public class BackupJobRunner implements Callable<Void> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final BackupJob job;
   private final BackupAgentContext ctx;
@@ -19,18 +20,12 @@ public class BackupJobRunner {
     this.ctx = ctx;
   }
 
-  public void wrappedRun() {
-    try {
-      run();
-    } catch (BackupException e) {
-      e.printStackTrace();
-    }
-  }
-
-  public void run() throws BackupException {
+  @Override
+  public Void call() throws Exception {
     long t0 = System.currentTimeMillis();
     Stats stats = scanDirectory(job.getConfiguration().getDirectory(), job.getConfiguration().getFileRules());
-    logger.debug("Scanned '{}' in {}ms: {} warnings, scanned {} entries and accepted {} files", job.getConfiguration().getDirectory(), (System.currentTimeMillis() - t0), stats.warnings, stats.foundFiles, stats.acceptedFiles);
+    logger.debug("Scanned '{}' in {}ms with {} warnings: {} entries and {} accepted files", job.getConfiguration().getDirectory(), (System.currentTimeMillis() - t0), stats.warnings, stats.foundFiles, stats.acceptedFiles);
+    return null;
   }
 
   private Stats scanDirectory(File directory, List<FileRule> fileRules) throws BackupException {

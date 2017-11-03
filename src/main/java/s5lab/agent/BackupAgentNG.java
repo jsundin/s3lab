@@ -17,6 +17,7 @@ import s5lab.notification.NotificationService;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,10 +66,26 @@ public class BackupAgentNG {
       return false;
     }
 
+    dbHandler.getClient().buildQuery("update file set last_modified=? where filename like '%/lab.xsl'")
+        .withParam().timestampValue(1, ZonedDateTime.now())
+        .executeUpdate();
+
     FilescannerThread filescannerThread = new FilescannerThread(dbHandler.getClient());
     filescannerThread.start();
 
     BackupAgentContext ctx = new BackupAgentContext(dbHandler.getClient(), notificationService, filescannerThread.filescannerQueue);
+
+    List<UploadThread> uploadThreads = new ArrayList<>();
+    for (BackupJob job : jobs) {
+      UploadThread uploadThread = new UploadThread(ctx, job);
+      uploadThread.start();
+      uploadThreads.add(uploadThread);
+    }
+
+    for (BackupProvider backupProvider : conf.getBackupProviders()) {
+      backupProvider.start();
+    }
+
     try {
       runAgent(ctx, conf, jobs);
     } catch (Throwable t) {
@@ -79,6 +96,14 @@ public class BackupAgentNG {
               .withException(t)
               .build());
     }
+    for (BackupProvider backupProvider : conf.getBackupProviders()) {
+      backupProvider.finish();
+    }
+
+    for (UploadThread uploadThread : uploadThreads) {
+      uploadThread.finish();
+    }
+
     filescannerThread.finish(true);
 
     try {
@@ -91,17 +116,13 @@ public class BackupAgentNG {
   }
 
   private void runAgent(BackupAgentContext ctx, Configuration conf, List<BackupJob> jobs) {
-    for (BackupProvider backupProvider : conf.getBackupProviders()) {
-      backupProvider.start();
-    }
-
     for (BackupJob job : jobs) {
       BackupJobRunner runner = new BackupJobRunner(job, ctx);
-      runner.wrappedRun();
-    }
-
-    for (BackupProvider backupProvider : conf.getBackupProviders()) {
-      backupProvider.finish();
+      try {
+        runner.call();
+      } catch (Throwable t) {
+        logger.error("Job '{}' failed: {}", job.getConfiguration().getDirectory(), t);
+      }
     }
   }
 

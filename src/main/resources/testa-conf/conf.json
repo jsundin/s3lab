@@ -1,0 +1,42 @@
+{
+  "directories": [
+    {
+      "directory": "/path/to/dir",
+      "deleted-files": {
+        "strategy": "keep-for-time",
+        "time-to-keep": "3w"
+      },
+      "old-versions": {
+        "strategy": "keep-versions",
+        "versions-to-keep": 3
+      },
+      "rules": []
+    }
+  ],
+  "global-rules": [],
+  "interval": "1d",
+  "target": {
+    "driver": "s3",
+    "check-etag-before-upload": true,
+    "threads": 5,
+    "throttling-per-thread": "5kbps",
+    "secret1": "",
+    "secret2": "",
+    "bucket": "jsundin-home-backup",
+    "key-prefix": "home/",
+    "strip-directory-prefix": true,
+    "compress-files": true,
+    "encrypt-files": true,
+    "obfuscate-filenames": true,
+    "file-secret": "abc123",
+    "filename-secret": "cba321"
+  },
+  "notifications": [
+    {
+
+    }
+  ],
+  "database": {
+
+  }
+}
