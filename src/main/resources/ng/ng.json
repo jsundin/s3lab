@@ -1,0 +1,10 @@
+{
+  "directories": [
+    {
+      "directory": "/home/johdin/tmp"
+    }
+  ],
+  "database": {
+    "url": "jdbc:derby:ng;create=true"
+  }
+}
