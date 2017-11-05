@@ -54,14 +54,16 @@ public class ConfigurationParser {
       }
       directoryConfigurations.add(new DirectoryConfiguration(
               directoryConfiguration.getDirectory(),
-              fileRules
+              fileRules,
+              directoryConfiguration.getStoreAs()
       ));
     }
 
     return new Configuration(
             directoryConfigurations,
             parsedConf.getDatabase(),
-            parsedConf.getIntervalInMinutes());
+            parsedConf.getIntervalInMinutes(),
+            parsedConf.getBackupDriver());
   }
 
   private ObjectMapper getObjectMapper(Format format) throws IOException {

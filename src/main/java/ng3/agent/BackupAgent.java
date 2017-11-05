@@ -6,6 +6,7 @@ import ng3.common.LatchSynchronizer;
 import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
+import ng3.drivers.BackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
@@ -160,7 +161,11 @@ public class BackupAgent {
       BackupReportWriter report = new BackupReportWriter();
       report.setStartedAt(ZonedDateTime.now());
 
+      BackupDriver.BackupSession backupSession = configuration.getBackupDriver().startSession(dbClient, report, planId);
+
       new FileScanner(dbClient, report, backupDirectories).scan();
+
+      backupSession.finish();
 
       report.setFinishedAt(ZonedDateTime.now());
       System.out.println("----");

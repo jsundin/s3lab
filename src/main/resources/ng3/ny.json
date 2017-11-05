@@ -2,24 +2,7 @@
   "directories": [
     {
       "directory": "/home/jsundin/tmp",
-      "rules": [
-        {
-          "rule": "exclude-directory",
-          "directory": "/home/jsundin/tmp/squash"
-        },
-        {
-          "rule": "exclude-directory",
-          "directory": "/home/jsundin/tmp/AndroidStudioProjects"
-        },
-        {
-          "rule": "exclude-directory",
-          "directory": "/home/jsundin/tmp/nuc"
-        },
-        {
-          "rule": "exclude-directory",
-          "directory": "/home/jsundin/tmp/old-stuff"
-        }
-      ]
+      "store-as": "jsundin-tmp"
     }
   ],
   "global-rules": [
@@ -28,9 +11,30 @@
     },
     {
       "rule": "exclude-symlinks"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/squash"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/AndroidStudioProjects"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/nuc"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/old-stuff"
     }
   ],
   "interval": "1m",
+  "target": {
+    "driver": "file-copy",
+    "path": "/tmp/backups",
+    "create-if-needed": true
+  },
   "database": {
     "url": "jdbc:derby:ng3;create=true"
   }

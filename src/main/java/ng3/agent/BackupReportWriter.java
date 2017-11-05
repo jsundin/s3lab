@@ -13,13 +13,23 @@ public class BackupReportWriter implements BackupReport {
   private ZonedDateTime startedAt;
   private ZonedDateTime finishedAt;
   private final FileScannerReportWriter fileScannerReport = new FileScannerReportWriter();
+  private final TargetReportWriter targetReport = new TargetReportWriter();
 
   public FileScannerReport getFileScannerReport() {
     return fileScannerReport;
   }
 
+  @Override
+  public TargetReport getTargetReport() {
+    return targetReport;
+  }
+
   public FileScannerReportWriter getFileScannerReportWriter() {
     return fileScannerReport;
+  }
+
+  public TargetReportWriter getTargetReportWriter() {
+    return targetReport;
   }
 
   public void setStartedAt(ZonedDateTime startedAt) {
@@ -55,7 +65,8 @@ public class BackupReportWriter implements BackupReport {
     for (String warning : warnings) {
       sb.append(warning).append("\n");
     }
-    sb.append("FileScanner stats: [").append(fileScannerReport.toString()).append("]");
+    sb.append("FileScanner stats: [").append(fileScannerReport.toString()).append("]").append("\n");
+    sb.append("Target stats: [").append(targetReport.toString()).append("]");
     return sb.toString();
   }
 
@@ -109,6 +120,29 @@ public class BackupReportWriter implements BackupReport {
     @Override
     public String toString() {
       return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", found=" + foundFiles + ", rejected=" + rejectedFiles + ", acceptedFiles=" + acceptedFiles + ", acceptedDirs=" + acceptedDirectories + ", newFiles=" + newFiles + ", updatedFiles=" + updatedFiles + ", deletedFiles=" + deletedFiles;
+    }
+  }
+
+  public class TargetReportWriter implements TargetReport {
+    private int processedFiles;
+    private ZonedDateTime startedAt;
+    private ZonedDateTime finishedAt;
+
+    public void setStartedAt(ZonedDateTime startedAt) {
+      this.startedAt = startedAt;
+    }
+
+    public void setFinishedAt(ZonedDateTime finishedAt) {
+      this.finishedAt = finishedAt;
+    }
+
+    public void processedFile() {
+      processedFiles++;
+    }
+
+    @Override
+    public String toString() {
+      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", processedFiles=" + processedFiles;
     }
   }
 }

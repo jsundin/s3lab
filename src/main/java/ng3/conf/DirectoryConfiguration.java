@@ -11,13 +11,16 @@ import java.util.List;
 public class DirectoryConfiguration {
   private final File directory;
   private final List<FileRule> rules;
+  private final String storeAs;
 
   @JsonCreator
   public DirectoryConfiguration(
           @JsonProperty("directory") File directory,
-          @JsonProperty("rules") List<FileRule> rules) {
+          @JsonProperty("rules") List<FileRule> rules,
+          @JsonProperty("store-as") String storeAs) {
     this.directory = directory;
-    this.rules = Collections.unmodifiableList(rules);
+    this.rules = Collections.unmodifiableList(rules == null ? Collections.emptyList() : rules);
+    this.storeAs = storeAs;
   }
 
   public File getDirectory() {
@@ -26,5 +29,9 @@ public class DirectoryConfiguration {
 
   public List<FileRule> getRules() {
     return rules;
+  }
+
+  public String getStoreAs() {
+    return storeAs;
   }
 }

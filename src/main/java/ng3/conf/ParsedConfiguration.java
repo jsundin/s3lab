@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import ng3.drivers.BackupDriver;
 import s5lab.configuration.FileRule;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ class ParsedConfiguration {
   private List<FileRule> globalRules;
   private DatabaseConfiguration database;
   private int intervalInMinutes;
+  private BackupDriver backupDriver;
 
   public int getIntervalInMinutes() {
     return intervalInMinutes;
@@ -51,6 +53,15 @@ class ParsedConfiguration {
   @JsonProperty("global-rules")
   public void setGlobalRules(List<FileRule> globalRules) {
     this.globalRules = globalRules;
+  }
+
+  public BackupDriver getBackupDriver() {
+    return backupDriver;
+  }
+
+  @JsonProperty("target")
+  public void setBackupDriver(BackupDriver backupDriver) {
+    this.backupDriver = backupDriver;
   }
 
   public static class IntervalToMinutesDeserializer extends JsonDeserializer<Integer> {
