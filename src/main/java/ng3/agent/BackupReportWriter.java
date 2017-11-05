@@ -142,6 +142,10 @@ public class BackupReportWriter implements BackupReport {
       processedFiles++;
     }
 
+    public void processedFiles(int n) {
+      processedFiles += n;
+    }
+
     public void successfulFile() {
       successfulFiles++;
     }

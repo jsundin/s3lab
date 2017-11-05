@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class QueryBuilder {
   private Logger logger = LoggerFactory.getLogger(getClass());
@@ -138,8 +139,23 @@ public class QueryBuilder {
       }
     }
 
+    public QueryBuilder stringValues(int firstIndex, List<String> values) {
+      try {
+        for (int i = 0; i < values.size(); i++) {
+          preparedStatement.setString(firstIndex + i, values.get(i));
+        }
+        return QueryBuilder.this;
+      } catch (Throwable t) {
+        throw new DatabaseException(t);
+      }
+    }
+
     public QueryBuilder uuidValue(int index, UUID value) {
       return stringValue(index, value.toString());
+    }
+
+    public QueryBuilder uuidValues(int firstIndex, List<UUID> values) {
+      return stringValues(firstIndex, values.stream().map(UUID::toString).collect(Collectors.toList()));
     }
 
     public QueryBuilder fileValue(int index, File value) {

@@ -161,7 +161,7 @@ public class BackupAgent {
       BackupReportWriter report = new BackupReportWriter();
       report.setStartedAt(ZonedDateTime.now());
 
-      BackupDriver.BackupSession backupSession = configuration.getBackupDriver().startSession(dbClient, report, backupDirectories, planId);
+      BackupDriver.BackupSession backupSession = configuration.getBackupDriver().startSession(dbClient, report, backupDirectories);
 
       new FileScanner(dbClient, report, backupDirectories).scan();
 

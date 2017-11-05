@@ -33,7 +33,7 @@
   "target": {
     "driver": "file-copy",
     "path": "/tmp/backups",
-    "create-if-needed": true
+    "threads": 2
   },
   "database": {
     "url": "jdbc:derby:ng3;create=true"
