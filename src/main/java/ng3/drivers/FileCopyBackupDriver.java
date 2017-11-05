@@ -64,13 +64,13 @@ public class FileCopyBackupDriver implements BackupDriver {
     @Override
     public void finish() {
       task.sessionFinished.release();
-      task.finished.acquireUninterruptibly();
+      task.taskFinished.acquireUninterruptibly();
     }
   }
 
   private class BackupTask extends AbstractBackupDriver implements Runnable {
     private final DbClient dbClient;
-    private final Semaphore finished = new Semaphore(0);
+    private final Semaphore taskFinished = new Semaphore(0);
     private final Semaphore sessionFinished = new Semaphore(0);
     private final BackupReportWriter report;
     private final List<BackupDirectory> backupDirectories;
@@ -100,7 +100,7 @@ public class FileCopyBackupDriver implements BackupDriver {
         executor.shutdownNow();
         awaitTermination(executor);
       } finally {
-        finished.release();
+        taskFinished.release();
       }
     }
 
