@@ -1,15 +1,16 @@
 package ng3;
 
 import ng3.agent.BackupAgent;
-import ng3.agent.BackupAgentParams;
-import ng3.common.PidfileWriter;
 import ng3.common.LatchSynchronizer;
+import ng3.common.PidfileWriter;
+import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
 import ng3.conf.ConfigurationParser;
 import ng3.db.DbHandler;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import s5lab.Settings;
 
 import java.io.File;
@@ -48,11 +49,6 @@ public class Main {
   }
 
   private boolean run(CommandLine commandLine) throws Exception {
-    BackupAgentParams agentParams = new BackupAgentParams();
-    agentParams.setFailOnBadDirectories(commandLine.hasOption(OPT_FAIL_ON_BAD_DIRECTORIES));
-    agentParams.setForceBackupNow(commandLine.hasOption(OPT_FORCE_BACKUP_NOW));
-    agentParams.setRunOnce(commandLine.hasOption(OPT_RUN_ONCE));
-
     File confFile = new File(commandLine.getOptionValue(OPT_CONFIGURATION));
     logger.debug("Loading configuration from '{}'", confFile);
     Configuration conf = new ConfigurationParser().parseConfiguration(confFile);
@@ -67,9 +63,12 @@ public class Main {
       dbHandler.install();
     }
 
-    UUID planId = dbHandler.getClient().buildQuery("select plan_id from plan")
+    UUID planId;
+    UUID _planId = dbHandler.getClient().buildQuery("select plan_id from plan")
             .executeQueryForObject(rs -> rs.getUuid(1));
-    if (planId == null) {
+    if (_planId != null) {
+      planId = _planId;
+    } else {
       planId = UUID.randomUUID();
       dbHandler.getClient().buildQuery("insert into plan (plan_id) values (?)")
               .withParam().uuidValue(1, planId)
@@ -85,15 +84,31 @@ public class Main {
       pidfileWriter.start();
     }
 
-    BackupAgent backupAgent = new BackupAgent(agentParams, shutdownSynchronizer, planId, dbHandler.getClient(), conf);
-    boolean success;
+    BackupAgent backupAgent = new BackupAgent(shutdownSynchronizer, planId, dbHandler.getClient(), conf);
+    final boolean[] success = new boolean[1];
 
-    try {
-      success = backupAgent.run();
-    } catch (Throwable t) {
-      System.err.println("Unhandled error");
-      t.printStackTrace();
-      success = false;
+    Thread agentThread = new SimpleThreadFactory("BackupAgent").newThread(() -> {
+      try {
+        MDC.put("plan", confFile.getName());
+        success[0] = backupAgent.run(
+                commandLine.hasOption(OPT_FAIL_ON_BAD_DIRECTORIES),
+                commandLine.hasOption(OPT_FORCE_BACKUP_NOW),
+                commandLine.hasOption(OPT_RUN_ONCE));
+      } catch (Throwable error) {
+        logger.error("Unhandled error in plan '{}'", planId);
+        logger.error("", error);
+        success[0] = false;
+      }
+    });
+
+    agentThread.start();
+    while (true) {
+      try {
+        agentThread.join();
+        break;
+      } catch (InterruptedException e) {
+        agentThread.interrupt();
+      }
     }
 
     if (pidfileWriter != null) {
@@ -101,7 +116,7 @@ public class Main {
     }
     dbHandler.close();
 
-    return success;
+    return success[0];
   }
 
   private static CommandLine parseCommandline(String[] args) throws ParseException {

@@ -39,7 +39,7 @@ public class PidfileWriter {
     }
     logger.info("Wrote pid '{}' to '{}'", pid, file);
 
-    new Thread(new Task(), "PidFile").start();
+    new SimpleThreadFactory("PidFile").newThread(task).start();
     return true;
   }
 
@@ -50,14 +50,14 @@ public class PidfileWriter {
     }
   }
 
-  private class Task implements Runnable {
+  private Runnable task = new Runnable() {
     @Override
     public void run() {
       logger.debug("Watching '{}'", file);
       while (!finished) {
         if (!file.exists()) {
           logger.debug("'{}' was removed", file);
-          latchSynchronizer.releaseLatches();
+          latchSynchronizer.releaseAllSemaphores();
           break;
         }
 
@@ -67,5 +67,5 @@ public class PidfileWriter {
       }
       logger.debug("Stopped watching '{}'", file);
     }
-  }
+  };
 }

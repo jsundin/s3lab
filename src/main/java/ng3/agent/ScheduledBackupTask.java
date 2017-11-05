@@ -1,17 +1,12 @@
 package ng3.agent;
 
-import ng3.BackupPlan;
-import ng3.common.BlockingLatch;
-import ng3.common.ErrorCallback;
 import ng3.common.ScheduledTask;
-import ng3.conf.Configuration;
-import ng3.db.DbClient;
+import ng3.common.SimpleThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -19,22 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 class ScheduledBackupTask extends ScheduledTask {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final UUID planId;
-  private final DbClient dbClient;
-  private final Configuration configuration;
-  private final boolean reschedule;
-  private final BlockingLatch blockingLatch;
-  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, r -> new Thread(r, "BackupTask"));
-  private final Runnable callback;
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new SimpleThreadFactory("BackupTask"));
+  private final boolean runOnce;
+  private final Controller controller;
 
-  ScheduledBackupTask(UUID planId, DbClient dbClient, Configuration configuration, boolean reschedule, BlockingLatch blockingLatch, Runnable callback, ErrorCallback errorCallback) {
-    super(errorCallback);
-    this.planId = planId;
-    this.dbClient = dbClient;
-    this.configuration = configuration;
-    this.reschedule = reschedule;
-    this.blockingLatch = blockingLatch;
-    this.callback = callback;
+  ScheduledBackupTask(Controller controller, boolean runOnce) {
+    super(controller::onError);
+    this.runOnce = runOnce;
+    this.controller = controller;
   }
 
   void shutdown() {
@@ -44,30 +31,19 @@ class ScheduledBackupTask extends ScheduledTask {
 
   @Override
   protected boolean performTask() {
-    BackupPlan backupPlan = dbClient.getBackupPlan(planId);
-    backupPlan.setLastStarted(ZonedDateTime.now());
-    dbClient.saveBackupPlan(backupPlan);
+    controller.backupTaskStarted();
 
-    callback.run();
+    controller.executeJob();
 
-    if (!reschedule) {
-      notifyFinish();
+    if (runOnce) {
+      controller.schedulingFinished();
     }
-    return reschedule;
+    return !runOnce;
   }
 
   @Override
   protected ScheduledFuture<?> scheduleFuture(boolean forceNow) {
-    ZonedDateTime next = null;
-    if (!forceNow) {
-      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
-      if (backupPlan.getLastStarted() != null) {
-        next = backupPlan.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
-        if (next.isBefore(ZonedDateTime.now())) {
-          next = null;
-        }
-      }
-    }
+    ZonedDateTime next = forceNow ? null : controller.getNextExecutionTime();
 
     logger.info("Next backup scheduled " + (next == null ? "NOW" : "at " + next));
     if (next == null) {
@@ -78,7 +54,11 @@ class ScheduledBackupTask extends ScheduledTask {
     }
   }
 
-  private void notifyFinish() {
-    blockingLatch.release();
+  public interface Controller {
+    void backupTaskStarted();
+    ZonedDateTime getNextExecutionTime();
+    void executeJob();
+    void schedulingFinished();
+    void onError(Throwable t);
   }
 }

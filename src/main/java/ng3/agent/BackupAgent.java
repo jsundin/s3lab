@@ -1,7 +1,7 @@
 package ng3.agent;
 
 import ng3.BackupDirectory;
-import ng3.common.BlockingLatch;
+import ng3.BackupPlan;
 import ng3.common.LatchSynchronizer;
 import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
@@ -12,72 +12,47 @@ import s4lab.TimeUtils;
 
 import java.io.File;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 public class BackupAgent {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final BackupAgentParams params;
   private final LatchSynchronizer shutdownSynchronizer;
   private final UUID planId;
   private final DbClient dbClient;
   private final Configuration configuration;
-  private final BlockingLatch executionLatch = new BlockingLatch("ExecutionLatch");
+  private final Semaphore agentLock = new Semaphore(0);
 
-  public BackupAgent(BackupAgentParams params, LatchSynchronizer shutdownSynchronizer, UUID planId, DbClient dbClient, Configuration configuration) {
-    this.params = params;
+  public BackupAgent(LatchSynchronizer shutdownSynchronizer, UUID planId, DbClient dbClient, Configuration configuration) {
     this.shutdownSynchronizer = shutdownSynchronizer;
     this.planId = planId;
     this.dbClient = dbClient;
     this.configuration = configuration;
   }
 
-  public boolean run() throws Exception {
-    List<BackupDirectory> backupDirectories = findBackupDirectories();
-    if (params.isFailOnBadDirectories()) {
+  public boolean run(boolean failOnBadDirectories, boolean forceBackupNow, boolean runOnce) throws Exception {
+    final List<BackupDirectory> backupDirectories = Collections.unmodifiableList(findBackupDirectories());
+    if (failOnBadDirectories) {
       if (!checkDirectories(backupDirectories)) {
         return false;
       }
       logger.debug("All configured directories seem to be accessible");
     }
 
-    executionLatch.start();
-    shutdownSynchronizer.addLatch(executionLatch);
+    shutdownSynchronizer.addSemaphore(agentLock);
 
     long t0 = System.currentTimeMillis();
-    final boolean[] success = {true};
-    ScheduledBackupTask backupTask = new ScheduledBackupTask(planId, dbClient, configuration, !params.isRunOnce(), executionLatch, () -> executeJob(backupDirectories), (error) -> {
-      logger.error("An unhandled error occurred", error);
-      executionLatch.release();
-      success[0] = false;
-    });
-    backupTask.scheduleTask(params.isForceBackupNow());
+    BackupTaskController backupTaskController = new BackupTaskController(backupDirectories);
+    ScheduledBackupTask backupTask = new ScheduledBackupTask(backupTaskController, runOnce);
+    backupTask.scheduleTask(forceBackupNow);
 
-    executionLatch.joinUninterruptibly();
-    shutdownSynchronizer.removeLatch(executionLatch);
+    agentLock.acquire(); // wait for jobs to complete
+    shutdownSynchronizer.removeSemaphore(agentLock);
     backupTask.shutdown();
 
-    logger.info("Executed {} backups in {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0));
-    return success[0];
-  }
-
-  private void executeJob(List<BackupDirectory> backupDirectories) {
-    BackupReport report = new BackupReport();
-    report.setStartedAt(ZonedDateTime.now());
-
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
-    report.setFinishedAt(ZonedDateTime.now());
-    System.out.println("----");
-    System.out.println(report);
-    System.out.println("----");
+    logger.info("Executed {} backups in {}, finishing {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0), backupTaskController.hasErrors() ? "with error(s)" : "successfully");
+    return !backupTaskController.hasErrors();
   }
 
   private boolean checkDirectories(List<BackupDirectory> backupDirectories) {
@@ -149,6 +124,70 @@ public class BackupAgent {
     private ConfiguredDirectory(UUID id, File directory) {
       this.id = id;
       this.directory = directory;
+    }
+  }
+
+
+  private class BackupTaskController implements ScheduledBackupTask.Controller {
+    private Throwable error;
+    private final List<BackupDirectory> backupDirectories;
+
+    private BackupTaskController(List<BackupDirectory> backupDirectories) {
+      this.backupDirectories = backupDirectories;
+    }
+
+    @Override
+    public void backupTaskStarted() {
+      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
+      backupPlan.setLastStarted(ZonedDateTime.now());
+      dbClient.saveBackupPlan(backupPlan);
+    }
+
+    @Override
+    public ZonedDateTime getNextExecutionTime() {
+      ZonedDateTime next = null;
+      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
+      if (backupPlan.getLastStarted() != null) {
+        next = backupPlan.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
+        if (next.isBefore(ZonedDateTime.now())) {
+          next = null;
+        }
+      }
+      return next;
+    }
+
+    @Override
+    public void executeJob() {
+      BackupReport report = new BackupReport();
+      report.setStartedAt(ZonedDateTime.now());
+
+      System.out.println(backupDirectories.stream().map(v -> v.getConfiguration().getDirectory().toString()).collect(Collectors.joining(", ", "(", ")")));
+      try {
+        Thread.sleep(2000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+
+      report.setFinishedAt(ZonedDateTime.now());
+      System.out.println("----");
+      System.out.println(report);
+      System.out.println("----");
+    }
+
+    @Override
+    public void schedulingFinished() {
+      agentLock.release();
+    }
+
+    @Override
+    public void onError(Throwable t) {
+      logger.error("Unhandled error", t);
+      error = t;
+      agentLock.release();
+    }
+
+    boolean hasErrors() {
+      return error != null;
     }
   }
 }

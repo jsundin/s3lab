@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="format" value="[%-10thread %-5level] %d{HH:mm:ss.SSS} -- %logger{10} -- %msg%n"/>
+    <property name="format" value="[%-15thread %-5level] %d{HH:mm:ss.SSS} -- %logger{10} -- %msg [%X{plan:-main}]%n"/>
     <property name="app_level" value="DEBUG"/>
     <property name="default_level" value="INFO"/>
     <property name="stderr_cutoff" value="WARN"/>

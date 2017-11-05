@@ -2,26 +2,27 @@ package ng3.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class LatchSynchronizer {
-  private final List<BlockingLatch> latches = new ArrayList<>();
+  private final List<Semaphore> semaphores = new ArrayList<>();
 
-  public void addLatch(BlockingLatch latch) {
-    synchronized (latches) {
-      latches.add(latch);
+  public void addSemaphore(Semaphore semaphore) {
+    synchronized (semaphores) {
+      semaphores.add(semaphore);
     }
   }
 
-  public void removeLatch(BlockingLatch latch) {
-    synchronized (latches) {
-      latches.remove(latch);
+  public void removeSemaphore(Semaphore semaphore) {
+    synchronized (semaphores) {
+      semaphores.remove(semaphore);
     }
   }
 
-  public void releaseLatches() {
-    synchronized (latches) {
-      for (BlockingLatch latch : latches) {
-        latch.release();
+  public void releaseAllSemaphores() {
+    synchronized (semaphores) {
+      for (Semaphore semaphore : semaphores) {
+        semaphore.release();
       }
     }
   }
