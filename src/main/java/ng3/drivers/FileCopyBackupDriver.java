@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class FileCopyBackupDriver implements BackupDriver {
+  private final static String DELETED_MARKER = ",DELETED";
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final File path;
   private final int threads;
@@ -189,8 +190,6 @@ public class FileCopyBackupDriver implements BackupDriver {
       return target;
     }
   }
-
-  private final static String DELETED_MARKER = ",DELETED";
 
   private class CopyFileTask implements Runnable {
     private final File src;
