@@ -9,9 +9,6 @@ import ng3.db.DbClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
-import s5lab.configuration.ExcludeDirectoryFileRule;
-import s5lab.configuration.ExcludeHiddenFilesFileRule;
-import s5lab.configuration.ExcludeSymlinksFileRule;
 import s5lab.configuration.FileRule;
 
 import java.io.File;
@@ -215,15 +212,8 @@ public class BackupAgent {
       BackupReportWriter report = new BackupReportWriter();
       report.setStartedAt(ZonedDateTime.now());
 
-      List<FileRule> fileRules = new ArrayList<>();
-      fileRules.add(new ExcludeSymlinksFileRule());
-      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/squash")));
-      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/AndroidStudioProjects")));
-      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/old-stuff")));
-      fileRules.add(new ExcludeHiddenFilesFileRule());
-
       for (BackupDirectory backupDirectory : backupDirectories) {
-        scanDirectory(report, backupDirectory.getConfiguration().getDirectory(), fileRules);
+        scanDirectory(report, backupDirectory.getConfiguration().getDirectory(), backupDirectory.getConfiguration().getRules());
       }
 
       report.setFinishedAt(ZonedDateTime.now());

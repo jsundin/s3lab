@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FilenameUtils;
+import s5lab.configuration.FileRule;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConfigurationParser {
   public Configuration parseConfiguration(File file) throws IOException {
@@ -40,8 +43,23 @@ public class ConfigurationParser {
   public Configuration parseConfiguration(InputStream inputStream, Format format) throws IOException {
     ParsedConfiguration parsedConf = getObjectMapper(format).readValue(inputStream, ParsedConfiguration.class);
 
+    List<DirectoryConfiguration> directoryConfigurations = new ArrayList<>();
+    for (DirectoryConfiguration directoryConfiguration : parsedConf.getDirectories()) {
+      List<FileRule> fileRules = new ArrayList<>();
+      if (directoryConfiguration.getRules() != null) {
+        fileRules.addAll(directoryConfiguration.getRules());
+      }
+      if (parsedConf.getGlobalRules() != null) {
+        fileRules.addAll(parsedConf.getGlobalRules());
+      }
+      directoryConfigurations.add(new DirectoryConfiguration(
+              directoryConfiguration.getDirectory(),
+              fileRules
+      ));
+    }
+
     return new Configuration(
-            parsedConf.getDirectories(),
+            directoryConfigurations,
             parsedConf.getDatabase(),
             parsedConf.getIntervalInMinutes());
   }

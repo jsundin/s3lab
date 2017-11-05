@@ -3,12 +3,28 @@
     {
       "directory": "/home/jsundin/tmp",
       "rules": [
-
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/squash"
+        },
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/AndroidStudioProjects"
+        },
+        {
+          "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/old-stuff"
+        }
       ]
     }
   ],
   "global-rules": [
-
+    {
+      "rule": "exclude-hidden-files"
+    },
+    {
+      "rule": "exclude-symlinks"
+    }
   ],
   "interval": "1m",
   "database": {
