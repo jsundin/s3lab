@@ -13,6 +13,10 @@
         },
         {
           "rule": "exclude-directory",
+          "directory": "/home/jsundin/tmp/nuc"
+        },
+        {
+          "rule": "exclude-directory",
           "directory": "/home/jsundin/tmp/old-stuff"
         }
       ]

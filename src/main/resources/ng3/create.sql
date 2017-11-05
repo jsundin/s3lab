@@ -13,3 +13,15 @@ create table directory (
     primary key (directory_id),
     foreign key (plan_id) references plan (plan_id)
 );
+
+create table file (
+    file_id varchar(36),
+    directory_id varchar(36),
+    filename varchar(4096),
+    last_modified timestamp,
+    upload_started timestamp,
+    upload_finished timestamp,
+
+    primary key (file_id),
+    foreign key (directory_id) references directory (directory_id)
+);

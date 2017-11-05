@@ -64,6 +64,26 @@ public class BackupReportWriter implements BackupReport {
     private int rejectedFiles;
     private int acceptedFiles;
     private int acceptedDirectories;
+    private int newFiles;
+    private int updatedFiles;
+    private ZonedDateTime startedAt;
+    private ZonedDateTime finishedAt;
+
+    public void setStartedAt(ZonedDateTime startedAt) {
+      this.startedAt = startedAt;
+    }
+
+    public void setFinishedAt(ZonedDateTime finishedAt) {
+      this.finishedAt = finishedAt;
+    }
+
+    public void newFile() {
+      newFiles++;
+    }
+
+    public void updatedFile() {
+      updatedFiles++;
+    }
 
     public void foundFile() {
       foundFiles++;
@@ -83,7 +103,7 @@ public class BackupReportWriter implements BackupReport {
 
     @Override
     public String toString() {
-      return "found=" + foundFiles + ", rejected=" + rejectedFiles + ", acceptedFiles=" + acceptedFiles + ", acceptedDirs=" + acceptedDirectories;
+      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", found=" + foundFiles + ", rejected=" + rejectedFiles + ", acceptedFiles=" + acceptedFiles + ", acceptedDirs=" + acceptedDirectories + ", newFiles=" + newFiles + ", updatedFiles=" + updatedFiles;
     }
   }
 }
