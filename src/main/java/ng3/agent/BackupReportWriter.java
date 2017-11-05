@@ -125,6 +125,8 @@ public class BackupReportWriter implements BackupReport {
 
   public class TargetReportWriter implements TargetReport {
     private int processedFiles;
+    private int successfulFiles;
+    private int failedFiles;
     private ZonedDateTime startedAt;
     private ZonedDateTime finishedAt;
 
@@ -140,9 +142,17 @@ public class BackupReportWriter implements BackupReport {
       processedFiles++;
     }
 
+    public void successfulFile() {
+      successfulFiles++;
+    }
+
+    public void failedFile() {
+      failedFiles++;
+    }
+
     @Override
     public String toString() {
-      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", processedFiles=" + processedFiles;
+      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", processedFiles=" + processedFiles + ", successfulFiles=" + successfulFiles + ", failedFiles=" + failedFiles;
     }
   }
 }
