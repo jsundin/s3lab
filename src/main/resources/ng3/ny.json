@@ -1,8 +1,14 @@
 {
   "directories": [
     {
-      "directory": "/home/jsundin/tmp"
+      "directory": "/home/jsundin/tmp",
+      "rules": [
+
+      ]
     }
+  ],
+  "global-rules": [
+
   ],
   "interval": "1m",
   "database": {

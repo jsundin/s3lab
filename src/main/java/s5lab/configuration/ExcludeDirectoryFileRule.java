@@ -5,6 +5,13 @@ import java.io.File;
 public class ExcludeDirectoryFileRule implements FileRule {
   private File directory;
 
+  public ExcludeDirectoryFileRule() {
+  }
+
+  public ExcludeDirectoryFileRule(File directory) {
+    this.directory = directory;
+  }
+
   public File getDirectory() {
     return directory;
   }

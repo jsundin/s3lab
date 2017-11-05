@@ -9,6 +9,10 @@ import ng3.db.DbClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
+import s5lab.configuration.ExcludeDirectoryFileRule;
+import s5lab.configuration.ExcludeHiddenFilesFileRule;
+import s5lab.configuration.ExcludeSymlinksFileRule;
+import s5lab.configuration.FileRule;
 
 import java.io.File;
 import java.time.ZonedDateTime;
@@ -53,6 +57,57 @@ public class BackupAgent {
 
     logger.info("Executed {} backups in {}, finishing {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0), backupTaskController.hasErrors() ? "with error(s)" : "successfully");
     return !backupTaskController.hasErrors();
+  }
+
+  private void scanDirectory(BackupReportWriter report, File directory, List<FileRule> fileRules) {
+    if (!directory.exists()) {
+      logger.error("Directory '{}' does not exist", directory);
+      report.addError("Directory '%s' does not exist", directory);
+      return;
+    }
+
+    if (!directory.isDirectory()) {
+      logger.error("Directory '{}' is not a directory'", directory);
+      report.addError("Directory '%s' is not a directory", directory);
+      return;
+    }
+
+    File[] files = directory.listFiles();
+    if (files == null) {
+      logger.error("Could not access directory '{}'", directory);
+      report.addError("Could not access directory '%s'", directory);
+      return;
+    }
+
+    for (File file : files) {
+      report.getFileScannerReportWriter().foundFile();
+      boolean accepted = true;
+      for (FileRule fileRule : fileRules) {
+        if (!fileRule.accept(file)) {
+          accepted = false;
+          break;
+        }
+      }
+      if (!accepted) {
+        report.getFileScannerReportWriter().rejectedFile();
+        continue;
+      }
+
+      if (file.isDirectory()) {
+        report.getFileScannerReportWriter().acceptedDirectory();
+        scanDirectory(report, file, fileRules);
+      } else if (file.isFile()) {
+        report.getFileScannerReportWriter().acceptedFile();
+        scanFile(report, file);
+      } else {
+        logger.warn("Could not determine file type for '{}", file);
+        report.addWarning("Could not determine file type for '%s'", file);
+      }
+    }
+  }
+
+  private void scanFile(BackupReportWriter backupReport, File file) {
+
   }
 
   private boolean checkDirectories(List<BackupDirectory> backupDirectories) {
@@ -127,7 +182,6 @@ public class BackupAgent {
     }
   }
 
-
   private class BackupTaskController implements ScheduledBackupTask.Controller {
     private Throwable error;
     private final List<BackupDirectory> backupDirectories;
@@ -158,14 +212,18 @@ public class BackupAgent {
 
     @Override
     public void executeJob() {
-      BackupReport report = new BackupReport();
+      BackupReportWriter report = new BackupReportWriter();
       report.setStartedAt(ZonedDateTime.now());
 
-      System.out.println(backupDirectories.stream().map(v -> v.getConfiguration().getDirectory().toString()).collect(Collectors.joining(", ", "(", ")")));
-      try {
-        Thread.sleep(2000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+      List<FileRule> fileRules = new ArrayList<>();
+      fileRules.add(new ExcludeSymlinksFileRule());
+      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/squash")));
+      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/AndroidStudioProjects")));
+      fileRules.add(new ExcludeDirectoryFileRule(new File("/home/jsundin/tmp/old-stuff")));
+      fileRules.add(new ExcludeHiddenFilesFileRule());
+
+      for (BackupDirectory backupDirectory : backupDirectories) {
+        scanDirectory(report, backupDirectory.getConfiguration().getDirectory(), fileRules);
       }
 
       report.setFinishedAt(ZonedDateTime.now());
