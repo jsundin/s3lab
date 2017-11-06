@@ -58,7 +58,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
   }
 
   @Override
-  protected AbstractBackupSessionNG openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
+  protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     char[] password = null;
     if (encryptionKey != null) {
       password = configuration.getSecrets().get(encryptionKey);
@@ -72,7 +72,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
     return new FileCopyBackupSession(dbClient, report, backupDirectories, password);
   }
 
-  public class FileCopyBackupSession extends AbstractBackupSessionNG {
+  public class FileCopyBackupSession extends AbstractBackupSession {
     private final ExecutorService executor;
     private final Semaphore threadSemaphore;
     private final Map<UUID, ValuePair<File, String>> backupTargets = new HashMap<>();

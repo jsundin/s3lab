@@ -24,15 +24,15 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
     dbClient.buildQuery("update file set upload_started=null where upload_finished is null")
         .executeUpdate();
-    AbstractBackupSessionNG session = openSession(dbClient, configuration, report, backupDirectories);
+    AbstractBackupSession session = openSession(dbClient, configuration, report, backupDirectories);
     new SimpleThreadFactory("BackupDriver").newThread(session).start();
     logger.info("Session started");
     return session;
   }
 
-  abstract protected AbstractBackupSessionNG openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
+  abstract protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
 
-  abstract public class AbstractBackupSessionNG implements BackupDriver.BackupSessionNG, Runnable {
+  abstract public class AbstractBackupSession implements BackupDriver.BackupSessionNG, Runnable {
     protected final DbClient dbClient;
     protected final BackupReportWriter report;
     protected final List<BackupDirectory> backupDirectories;
@@ -40,7 +40,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     private final Semaphore sessionSemaphore = new Semaphore(0);
     private final Semaphore taskSemaphore = new Semaphore(0);
 
-    AbstractBackupSessionNG(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
+    AbstractBackupSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
       this.dbClient = dbClient;
       this.report = report;
       this.backupDirectories = backupDirectories;
