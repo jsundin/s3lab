@@ -34,6 +34,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
 public class FileCopyBackupDriver extends AbstractBackupDriver {
+  private static final String COMPRESS_EXTENSION = ".gz";
+  private static final String ENCRYPT_EXTENSION = ".crypt";
+  private static final String DELETED_EXTENSION = ".deleted";
+  private static final String META_EXTENSION = ".meta";
+
   private Logger logger = LoggerFactory.getLogger(getClass());
   private final File path;
   private final int threads;
@@ -176,7 +181,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       salt = null;
     }
 
-    public CopyFileTask(File src, File target, Key key, byte[] salt) {
+    private CopyFileTask(File src, File target, Key key, byte[] salt) {
       this.src = src;
       this.target = target;
       this.key = key;
@@ -184,21 +189,28 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
     }
 
     private boolean execute() throws Exception {
-      logger.info("COPY '{}' '{}'", src, target);
+      if (!src.exists()) {
+        return delete();
+      } else {
+        return copy();
+      }
+    }
 
+    private boolean delete() throws Exception {
+      File target = addExtension(getFile(this.target), DELETED_EXTENSION);
+      try (FileOutputStream ignored = new FileOutputStream(target)) {
+      }
+      return true;
+    }
+
+    private boolean copy() throws Exception {
       DigestOutputStream fileOut = null;
       OutputStream lastOut = null;
       CipherOutputStream cipherOut = null;
       GZIPOutputStream gzOut = null;
       byte[] iv = null;
 
-      File target = this.target;
-      if (compress) {
-        target = addExtension(target, ".gz");
-      }
-      if (key != null && salt != null) {
-        target = addExtension(target, ".encrypted");
-      }
+      File target = getFile(this.target);
 
       try (FileInputStream fileIn = new FileInputStream(src)) {
         lastOut = fileOut = new DigestOutputStream(new FileOutputStream(target));
@@ -231,12 +243,32 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       }
       Metadata.FileMeta meta = metaBuilder.build();
 
-      File metaFile = addExtension(target, ".meta");
+      File metaFile = addExtension(target, META_EXTENSION);
       try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
         meta.writeTo(metaOut);
       }
 
       return true;
+    }
+
+    private File getFile(File src) {
+      File file = src;
+      if (compress) {
+        file = addExtension(file, COMPRESS_EXTENSION);
+      }
+      if (key != null && salt != null) {
+        file = addExtension(file, ENCRYPT_EXTENSION);
+      }
+      return getVersionedFile(file);
+    }
+
+    private File getVersionedFile(File src) {
+      File test = src;
+      int n = 1;
+      while (test.exists() || addExtension(test, DELETED_EXTENSION).exists()) {
+        test = addExtension(src, "," + n++);
+      }
+      return test;
     }
 
     private File addExtension(File file, String extension) {
