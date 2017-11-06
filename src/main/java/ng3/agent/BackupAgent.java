@@ -43,6 +43,15 @@ public class BackupAgent {
 
     shutdownSynchronizer.addSemaphore(agentLock);
 
+    // TODO: testa delete-stöd i archiver
+
+    // TODO: housekeeping - borde implementeras på samma vis som backupTask (som kan behöva ändras?)
+    // OBS! housekeeping och backuptask schemaläggs separat, men måste blocka varandra
+
+    // TODO: notifications - baserade på backupreport
+
+    // TODO: möjlighet att auto-stänga av backup om en backuprapport indikerar fel
+
     long t0 = System.currentTimeMillis();
     BackupTaskController backupTaskController = new BackupTaskController(backupDirectories);
     ScheduledBackupTask backupTask = new ScheduledBackupTask(backupTaskController, runOnce);

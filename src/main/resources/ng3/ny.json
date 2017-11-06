@@ -30,6 +30,19 @@
     }
   ],
   "interval": "1m",
+  "house-keeping": {
+    "interval": "1w", # om inte anges - körs alltid efter ett jobb
+    "deleted-files": { # keep-forever=true || keep-forever=false + resten, delete-after + keep-versions kan kombineras
+      "keep-forever": true,
+      "delete-after": "1m",
+      "keep-versions": 3
+    },
+    "old-versions": {
+      "keep-forever": true,
+      "delete-after": "1m",
+      "keep-versions": 3
+    }
+  },
   "target": {
     "driver": "archive",
     "archive-prefix": "/tmp/backup-",

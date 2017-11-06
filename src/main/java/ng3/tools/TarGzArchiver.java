@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.zip.GZIPOutputStream;
 
 public class TarGzArchiver {
+  private static final String DELETE_MARKER = "#DELETED#";
   private final static String TIMESTAMP_FORMAT = "yMD-Hms";
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String archivePrefix;
@@ -54,11 +55,17 @@ public class TarGzArchiver {
   }
 
   public void addFile(File file, String name) throws IOException {
+    boolean deleted = !file.exists();
     TarArchiveEntry entry = getArchiveEntry(file, name);
+    if (deleted) {
+      entry.setUserName(DELETE_MARKER);
+    }
     tarOutputStream.putArchiveEntry(entry);
     try (FileInputStream fis = new FileInputStream(file)) {
-      long len = IOUtils.copy(fis, tarOutputStream);
-      bytesInArchive += len;
+      if (!deleted) {
+        long len = IOUtils.copy(fis, tarOutputStream);
+        bytesInArchive += len;
+      }
     }
     tarOutputStream.closeArchiveEntry();
     filesInArchive++;
