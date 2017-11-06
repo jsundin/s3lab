@@ -86,4 +86,25 @@ public class ArchiveBackupDriver extends AbstractBackupDriver {
       }
     }
   }
+
+  private static class ArchiveWriter { // archive-(ver)-(part).tar.gz.crypt
+    private boolean compress;
+    private char[] password;
+
+    public void open() {
+
+    }
+
+    public void close() {
+
+    }
+
+    public void addFile() {
+
+    }
+
+    private void cycleArchive() {
+
+    }
+  }
 }
