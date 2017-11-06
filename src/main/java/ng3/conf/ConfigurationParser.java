@@ -3,6 +3,7 @@ package ng3.conf;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import s5lab.configuration.FileRule;
 
@@ -10,10 +11,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.Charset;
+import java.security.SecureRandom;
+import java.util.*;
 
 public class ConfigurationParser {
+  private Random random = new SecureRandom();
+
   public Configuration parseConfiguration(File file) throws IOException {
     String ext = FilenameUtils.getExtension(file.getName());
     Format format;
@@ -63,7 +67,36 @@ public class ConfigurationParser {
             directoryConfigurations,
             parsedConf.getDatabase(),
             parsedConf.getIntervalInMinutes(),
-            parsedConf.getBackupDriver());
+            parsedConf.getBackupDriver(),
+            parseSecrets(parsedConf.getSecrets()));
+  }
+
+  private Map<String, char[]> parseSecrets(Map<String, String> secrets) throws IOException {
+    Map<String, char[]> out = new HashMap<>();
+    if (secrets == null) {
+      return out;
+    }
+    for (String k : secrets.keySet()) {
+      String v = secrets.get(k);
+      char[] password;
+      if (k.endsWith("!")) {
+        password = readFileToCharArray(v);
+      } else {
+        password = v.toCharArray();
+      }
+      out.put(k, password);
+    }
+    return out;
+  }
+
+  private char[] readFileToCharArray(String filename) throws IOException {
+    File file;
+    if (filename.startsWith("~")) {
+      file = new File(System.getProperty("user.home"), filename.substring(1));
+    } else {
+      file = new File(filename);
+    }
+    return FileUtils.readFileToString(file, Charset.defaultCharset()).toCharArray();
   }
 
   private ObjectMapper getObjectMapper(Format format) throws IOException {

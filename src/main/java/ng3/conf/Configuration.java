@@ -4,18 +4,21 @@ import ng3.drivers.BackupDriver;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class Configuration {
   private final List<DirectoryConfiguration> directories;
   private final DatabaseConfiguration database;
   private final int intervalInMinutes;
   private final BackupDriver backupDriver;
+  private final Map<String, char[]> secrets;
 
-  public Configuration(List<DirectoryConfiguration> directories, DatabaseConfiguration database, int intervalInMinutes, BackupDriver backupDriver) {
+  public Configuration(List<DirectoryConfiguration> directories, DatabaseConfiguration database, int intervalInMinutes, BackupDriver backupDriver, Map<String, char[]> secrets) {
     this.directories = Collections.unmodifiableList(directories);
     this.database = database;
     this.intervalInMinutes = intervalInMinutes;
     this.backupDriver = backupDriver;
+    this.secrets = secrets;
   }
 
   public List<DirectoryConfiguration> getDirectories() {
@@ -32,5 +35,9 @@ public class Configuration {
 
   public BackupDriver getBackupDriver() {
     return backupDriver;
+  }
+
+  public Map<String, char[]> getSecrets() {
+    return secrets;
   }
 }

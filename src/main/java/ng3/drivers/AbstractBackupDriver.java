@@ -3,6 +3,7 @@ package ng3.drivers;
 import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
 import ng3.common.SimpleThreadFactory;
+import ng3.conf.Configuration;
 import ng3.db.DbClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,17 +20,17 @@ abstract public class AbstractBackupDriver implements BackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
-  public final BackupSessionNG startSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
+  public final BackupSessionNG startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
     dbClient.buildQuery("update file set upload_started=null where upload_finished is null")
         .executeUpdate();
-    AbstractBackupSessionNG session = openSession(dbClient, report, backupDirectories);
+    AbstractBackupSessionNG session = openSession(dbClient, configuration, report, backupDirectories);
     new SimpleThreadFactory("BackupDriver").newThread(session).start();
     logger.info("Session started");
     return session;
   }
 
-  abstract protected AbstractBackupSessionNG openSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories);
+  abstract protected AbstractBackupSessionNG openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
 
   abstract public class AbstractBackupSessionNG implements BackupDriver.BackupSessionNG, Runnable {
     protected final DbClient dbClient;

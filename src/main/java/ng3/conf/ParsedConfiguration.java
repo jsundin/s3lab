@@ -10,6 +10,7 @@ import s5lab.configuration.FileRule;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +20,7 @@ class ParsedConfiguration {
   private DatabaseConfiguration database;
   private int intervalInMinutes;
   private BackupDriver backupDriver;
+  private Map<String, String> secrets;
 
   public int getIntervalInMinutes() {
     return intervalInMinutes;
@@ -62,6 +64,14 @@ class ParsedConfiguration {
   @JsonProperty("target")
   public void setBackupDriver(BackupDriver backupDriver) {
     this.backupDriver = backupDriver;
+  }
+
+  public Map<String, String> getSecrets() {
+    return secrets;
+  }
+
+  public void setSecrets(Map<String, String> secrets) {
+    this.secrets = secrets;
   }
 
   public static class IntervalToMinutesDeserializer extends JsonDeserializer<Integer> {

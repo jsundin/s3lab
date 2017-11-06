@@ -8,12 +8,14 @@ import ng3.conf.Configuration;
 import ng3.conf.ConfigurationParser;
 import ng3.db.DbHandler;
 import org.apache.commons.cli.*;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import s5lab.Settings;
 
 import java.io.File;
+import java.security.Security;
 import java.util.UUID;
 
 public class Main {
@@ -27,6 +29,7 @@ public class Main {
   private static final String OPT_PIDFILE = "pf";
 
   public static void main(String[] args) {
+    Security.insertProviderAt(new BouncyCastleProvider(), 1);
     CommandLine commandLine = null;
     try {
       commandLine = parseCommandline(args);
