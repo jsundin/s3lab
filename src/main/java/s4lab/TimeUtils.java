@@ -97,4 +97,20 @@ public class TimeUtils {
     zdt = zdt.withZoneSameInstant(zoneOffset);
     return this;
   }
+
+  public static String formatMillis(long millis) {
+    long h = millis / 1000 / 60 / 60;
+    long m = millis / 1000 / 60 - (h * 60);
+    long s = millis / 1000 - (m * 60) - (h * 60 * 60);
+    if (h > 0) {
+      return String.format("%dh%dm%ds", h, m, s);
+    }
+    if (m > 0) {
+      return String.format("%dm%ds", m, s);
+    }
+    if (s > 0) {
+      return String.format("%ds", s);
+    }
+    return String.format("%dms", millis);
+  }
 }

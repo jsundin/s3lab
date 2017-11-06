@@ -1,0 +1,41 @@
+{
+  "directories": [
+    {
+      "directory": "/home/jsundin/tmp/backuplab",
+      "store-as": "jsundin-tmp"
+    }
+  ],
+  "global-rules": [
+    {
+      "rule": "exclude-hidden-files"
+    },
+    {
+      "rule": "exclude-symlinks"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/squash"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/AndroidStudioProjects"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/nuc"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/old-stuff"
+    }
+  ],
+  "interval": "1m",
+  "target": {
+    "driver": "file-copy",
+    "path": "/tmp/backups",
+    "threads": 2
+  },
+  "database": {
+    "url": "jdbc:derby:ng3;create=true"
+  }
+}
