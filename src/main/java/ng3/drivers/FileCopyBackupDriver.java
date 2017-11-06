@@ -211,6 +211,12 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       byte[] iv = null;
 
       File target = getFile(this.target);
+      if (!target.getParentFile().exists()) {
+        if (!target.getParentFile().mkdirs()) {
+          logger.error("Could not create directory '{}'", target.getParentFile());
+          return false;
+        }
+      }
 
       try (FileInputStream fileIn = new FileInputStream(src)) {
         lastOut = fileOut = new DigestOutputStream(new FileOutputStream(target));
@@ -230,8 +236,9 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       }
 
       Metadata.FileMeta.Builder metaBuilder = Metadata.FileMeta.newBuilder()
-          .setEncrypted(key != null)
-          .setFileMD5(ByteString.copyFrom(fileOut.getDigest()));
+              .setFormatVersion(1) // TODO: byt namn på proto-nyckel
+              .setEncrypted(key != null)
+              .setFileMD5(ByteString.copyFrom(fileOut.getDigest()));
 
       if (key != null && salt != null) {
         metaBuilder.setKeyIterations(Settings.KEY_ITERATIONS);

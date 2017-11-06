@@ -77,6 +77,8 @@ public class TarGzArchiver {
     if (outputStream != null && ((maxFilesInArchive != null && filesInArchive >= maxFilesInArchive) || (maxBytesInArchive != null && bytesInArchive >= maxBytesInArchive))) {
       closeArchive();
       archiveIndex++;
+      filesInArchive = 0;
+      bytesInArchive = 0;
     }
 
     if (outputStream == null) {
@@ -107,21 +109,23 @@ public class TarGzArchiver {
   }
 
   private void closeArchive() throws IOException {
-    IOUtils.closeQuietly(tarOutputStream);
-    IOUtils.closeQuietly(gzipOutputStream);
-    IOUtils.closeQuietly(cipherOutputStream);
-    IOUtils.closeQuietly(digestOutputStream);
+    if (outputStream != null) {
+      IOUtils.closeQuietly(tarOutputStream);
+      IOUtils.closeQuietly(gzipOutputStream);
+      IOUtils.closeQuietly(cipherOutputStream);
+      IOUtils.closeQuietly(digestOutputStream);
 
-    metaBuilder.setFileMD5(ByteString.copyFrom(digestOutputStream.getDigest()));
-    Metadata.FileMeta meta = metaBuilder.build();
-    try (FileOutputStream fos = new FileOutputStream(FileTools.addExtension(targetFile, ".meta"))) {
-      meta.writeTo(fos);
-    } finally {
-      digestOutputStream = null;
-      cipherOutputStream = null;
-      gzipOutputStream = null;
-      tarOutputStream = null;
-      outputStream = null;
+      metaBuilder.setFileMD5(ByteString.copyFrom(digestOutputStream.getDigest()));
+      Metadata.FileMeta meta = metaBuilder.build();
+      try (FileOutputStream fos = new FileOutputStream(FileTools.addExtension(targetFile, ".meta"))) {
+        meta.writeTo(fos);
+      } finally {
+        digestOutputStream = null;
+        cipherOutputStream = null;
+        gzipOutputStream = null;
+        tarOutputStream = null;
+        outputStream = null;
+      }
     }
   }
 
