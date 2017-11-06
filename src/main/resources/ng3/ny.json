@@ -31,11 +31,13 @@
   ],
   "interval": "1m",
   "target": {
-    "driver": "file-copy",
-    "path": "/tmp/backups",
-    "threads": 2,
-    "encrypt-with": "copy-key",
-    "compress": true
+    "driver": "archive",
+    "archive-prefix": "/tmp/backup-",
+    "max-files": 2000,
+    "max-size": "2g"
+  },
+  "secrets": {
+    "archive-key": "password"
   },
   "database": {
     "url": "jdbc:derby:ng3;create=true"

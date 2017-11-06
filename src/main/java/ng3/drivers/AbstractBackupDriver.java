@@ -70,7 +70,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
       try {
         runInternal();
       } catch (Throwable t) {
-        throw new RuntimeException(""); // TODO: FEL!
+        throw new RuntimeException(t); // TODO: FEL!
       } finally {
         report.getTargetReportWriter().setFinishedAt(ZonedDateTime.now());
         taskSemaphore.release();

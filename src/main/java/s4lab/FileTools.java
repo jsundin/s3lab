@@ -39,6 +39,10 @@ public class FileTools {
     }
   }
 
+  public static File addExtension(File file, String extension) {
+    return new File(file.getParent(), file.getName() + extension);
+  }
+
   public static class GZipCompressionInputStream {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final InputStream inputStream;

@@ -15,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.DigestOutputStream;
+import s4lab.FileTools;
 import s4lab.agent.Metadata;
 
 import javax.crypto.CipherOutputStream;
@@ -47,10 +48,10 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
 
   @JsonCreator
   public FileCopyBackupDriver(
-      @JsonProperty("path") File path,
-      @JsonProperty("threads") Integer threads,
-      @JsonProperty("encrypt-with") String encryptionKey,
-      @JsonProperty("compress") boolean compress) {
+          @JsonProperty("path") File path,
+          @JsonProperty("threads") Integer threads,
+          @JsonProperty("encrypt-with") String encryptionKey,
+          @JsonProperty("compress") boolean compress) {
     this.path = path;
     this.threads = threads == null || threads < 2 ? 1 : threads;
     this.encryptionKey = encryptionKey;
@@ -68,7 +69,6 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
         throw new RuntimeException("Could not find password for encryption key");
       }
     }
-    configuration.getSecrets().get(encryptionKey);
     return new FileCopyBackupSession(dbClient, report, backupDirectories, password);
   }
 
@@ -197,7 +197,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
     }
 
     private boolean delete() throws Exception {
-      File target = addExtension(getFile(this.target), DELETED_EXTENSION);
+      File target = FileTools.addExtension(getFile(this.target), DELETED_EXTENSION);
       try (FileOutputStream ignored = new FileOutputStream(target)) {
       }
       return true;
@@ -243,7 +243,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       }
       Metadata.FileMeta meta = metaBuilder.build();
 
-      File metaFile = addExtension(target, META_EXTENSION);
+      File metaFile = FileTools.addExtension(target, META_EXTENSION);
       try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
         meta.writeTo(metaOut);
       }
@@ -254,10 +254,10 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
     private File getFile(File src) {
       File file = src;
       if (compress) {
-        file = addExtension(file, COMPRESS_EXTENSION);
+        file = FileTools.addExtension(file, COMPRESS_EXTENSION);
       }
       if (key != null && salt != null) {
-        file = addExtension(file, ENCRYPT_EXTENSION);
+        file = FileTools.addExtension(file, ENCRYPT_EXTENSION);
       }
       return getVersionedFile(file);
     }
@@ -265,14 +265,10 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
     private File getVersionedFile(File src) {
       File test = src;
       int n = 1;
-      while (test.exists() || addExtension(test, DELETED_EXTENSION).exists()) {
-        test = addExtension(src, "," + n++);
+      while (test.exists() || FileTools.addExtension(test, DELETED_EXTENSION).exists()) {
+        test = FileTools.addExtension(src, "," + n++);
       }
       return test;
-    }
-
-    private File addExtension(File file, String extension) {
-      return new File(file.getParent(), file.getName() + extension);
     }
   }
 }
