@@ -1,6 +1,7 @@
 package ng3.drivers;
 
 import ng3.BackupDirectory;
+import ng3.Settings;
 import ng3.agent.BackupReportWriter;
 import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
@@ -70,7 +71,8 @@ abstract public class AbstractBackupDriver implements BackupDriver {
       try {
         runInternal();
       } catch (Throwable t) {
-        throw new RuntimeException(t); // TODO: FEL!
+        logger.error("Uncaught exception", t);
+        report.addError("Internal error - see system logs for details");
       } finally {
         report.getTargetReportWriter().setFinishedAt(ZonedDateTime.now());
         taskSemaphore.release();
@@ -87,7 +89,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
             break;
           }
           try {
-            Thread.sleep(200); // TODO: Settings
+            Thread.sleep(Settings.BACKUP_DRIVER_POLL_TIMEOUT_IN_MS);
           } catch (InterruptedException e) {
             Thread.interrupted();
           }

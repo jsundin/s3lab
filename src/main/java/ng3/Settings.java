@@ -4,6 +4,7 @@ public class Settings {
   public static final String CREATE_SCRIPT = "/ng3/create.sql";
   public static final String DROP_SCRIPT = "/ng3/drop.sql";
   public static final long FILESCAN_POLL_TIMEOUT_IN_MS = 200;
+  public static final long BACKUP_DRIVER_POLL_TIMEOUT_IN_MS = 200;
 
   public static final String KEY_ALGORITHM = "PBKDF2WithHmacSHA256";
   public static final int KEY_ITERATIONS = 6000;

@@ -108,7 +108,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
       executor.shutdown();
       while (true) {
         try {
-          executor.awaitTermination(999, TimeUnit.DAYS); // TODO: Settings
+          executor.awaitTermination(999, TimeUnit.DAYS);
           break;
         } catch (InterruptedException ignored) {
           Thread.interrupted();
