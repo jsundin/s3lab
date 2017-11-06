@@ -31,11 +31,7 @@
   ],
   "interval": "1m",
   "target": {
-    "driver": "file-copy",
-    "path": "/tmp/backups",
-    "threads": 2,
-    "encrypt-with": "copy-key",
-    "compress": true
+    "driver": "archive"
   },
   "secrets": {
     "copy-key": "secret password",

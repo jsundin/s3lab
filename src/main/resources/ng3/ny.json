@@ -33,7 +33,9 @@
   "target": {
     "driver": "file-copy",
     "path": "/tmp/backups",
-    "threads": 2
+    "threads": 2,
+    "encrypt-with": "copy-key",
+    "compress": true
   },
   "database": {
     "url": "jdbc:derby:ng3;create=true"

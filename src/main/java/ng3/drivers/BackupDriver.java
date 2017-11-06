@@ -11,7 +11,8 @@ import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "driver")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = FileCopyBackupDriver.class, name = "file-copy")
+    @JsonSubTypes.Type(value = FileCopyBackupDriver.class, name = "file-copy"),
+    @JsonSubTypes.Type(value = ArchiveBackupDriver.class, name = "archive")
 })
 public interface BackupDriver {
   BackupSessionNG startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
