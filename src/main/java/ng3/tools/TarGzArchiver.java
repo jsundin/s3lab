@@ -15,9 +15,11 @@ import s4lab.agent.SecurityException;
 
 import javax.crypto.CipherOutputStream;
 import java.io.*;
+import java.nio.file.Files;
 import java.security.Key;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public class TarGzArchiver {
@@ -59,10 +61,19 @@ public class TarGzArchiver {
     TarArchiveEntry entry = getArchiveEntry(file, name);
     if (deleted) {
       entry.setUserName(DELETE_MARKER);
+      entry.setSize(0);
+    } else {
+      try {
+        Map<String, Object> attributes = Files.readAttributes(file.toPath(), "unix:uid,gid,mode");
+        entry.setIds((int) attributes.get("uid"), (int) attributes.get("gid"));
+        entry.setMode((int) attributes.get("mode"));
+      } catch (IllegalArgumentException ignored) {}
+      entry.setSize(file.length());
+      entry.setModTime(file.lastModified());
     }
     tarOutputStream.putArchiveEntry(entry);
-    try (FileInputStream fis = new FileInputStream(file)) {
-      if (!deleted) {
+    if (!deleted) {
+      try (FileInputStream fis = new FileInputStream(file)) {
         long len = IOUtils.copy(fis, tarOutputStream);
         bytesInArchive += len;
       }

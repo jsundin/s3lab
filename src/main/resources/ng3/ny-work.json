@@ -31,7 +31,8 @@
   ],
   "interval": "1m",
   "target": {
-    "driver": "archive"
+    "driver": "archive",
+    "archive-prefix": "/tmp/backup-"
   },
   "secrets": {
     "copy-key": "secret password",
