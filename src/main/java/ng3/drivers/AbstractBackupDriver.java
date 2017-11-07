@@ -33,6 +33,19 @@ abstract public class AbstractBackupDriver implements BackupDriver {
 
   abstract protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
 
+  protected final char[] getPassword(String encryptionKey, Configuration configuration, BackupReportWriter report) {
+    char[] password = null;
+    if (encryptionKey != null) {
+      password = configuration.getSecrets().get(encryptionKey);
+      if (password == null) {
+        logger.error("Could not find password for encryption key '{}'", encryptionKey);
+        report.addError("Could not find password for encryption key - see system logs for details");
+        throw new RuntimeException("Could not find password for encryption key");
+      }
+    }
+    return password;
+  }
+
   abstract public class AbstractBackupSession implements BackupDriver.BackupSessionNG, Runnable {
     protected final DbClient dbClient;
     protected final BackupReportWriter report;

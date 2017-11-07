@@ -47,15 +47,7 @@ public class ArchiveBackupDriver extends AbstractBackupDriver {
 
   @Override
   protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
-    char[] password = null;
-    if (encryptionKey != null) {
-      password = configuration.getSecrets().get(encryptionKey);
-      if (password == null) {
-        logger.error("Could not find password for encryption key '{}'", encryptionKey);
-        report.addError("Could not find password for encryption key - see system logs for details");
-        throw new RuntimeException("Could not find password for encryption key");
-      }
-    }
+    char[] password = getPassword(encryptionKey, configuration, report);
 
     TarGzArchiver archiver = new TarGzArchiver(archivePrefix, compress, password, maxFilesInArchive, maxBytesInArchive);
     return new ArchiveBackupSession(dbClient, report, backupDirectories, archiver);
