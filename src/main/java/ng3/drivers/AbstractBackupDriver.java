@@ -118,12 +118,12 @@ abstract public class AbstractBackupDriver implements BackupDriver {
 
     private BackupFile getAndMarkNextFileForBackup() {
       BackupFile backupFile = dbClient.buildQuery(
-          "select file_id, filename, deleted, directory_id from file " +
+          "select file_id, filename, deleted, directory_id, last_modified from file " +
               "where directory_id in (" + IntStream.range(0, directoryIds.size()).mapToObj(v -> "?").collect(Collectors.joining(",")) + ") " +
               "and upload_started is null or (upload_finished is not null and upload_started>upload_finished) or (upload_started is not null and last_modified>upload_started) " +
               "fetch next 1 rows only")
           .withParam().uuidValues(1, directoryIds)
-          .executeQueryForObject(rs -> new BackupFile(rs.getUuid(1), rs.getFile(2), rs.getBoolean(3), rs.getUuid(4)));
+          .executeQueryForObject(rs -> new BackupFile(rs.getUuid(1), rs.getFile(2), rs.getBoolean(3), rs.getUuid(4), rs.getTimestamp(5)));
 
       if (backupFile != null) {
         dbClient.buildQuery("update file set upload_started=?, upload_finished=null where file_id=?")
@@ -140,12 +140,14 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     protected final File file;
     protected final boolean deleted;
     protected final UUID directoryId;
+    protected final ZonedDateTime lastModified;
 
-    private BackupFile(UUID id, File file, boolean deleted, UUID directoryId) {
+    private BackupFile(UUID id, File file, boolean deleted, UUID directoryId, ZonedDateTime lastModified) {
       this.id = id;
       this.file = file;
       this.deleted = deleted;
       this.directoryId = directoryId;
+      this.lastModified = lastModified;
     }
   }
 }

@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Date;
 
 public class TimeUtils {
   private ZonedDateTime zdt;
@@ -91,6 +92,15 @@ public class TimeUtils {
   public Timestamp toTimestamp(ZoneId zoneId) {
     to(zoneId);
     return toTimestamp();
+  }
+
+  public Date toDate() {
+    return Date.from(zdt.toInstant());
+  }
+
+  public Date toDate(ZoneId zoneId) {
+    to(zoneId);
+    return toDate();
   }
 
   private TimeUtils to(ZoneId zoneOffset) {

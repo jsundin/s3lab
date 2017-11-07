@@ -102,7 +102,11 @@ public class ArchiveBackupDriver extends AbstractBackupDriver {
       }
 
       try {
-        archiver.addFile(backupFile.file, entryName);
+        if (backupFile.file.exists()) {
+          archiver.addFile(backupFile.file, entryName);
+        } else {
+          archiver.deleteFile(backupFile.file, entryName, backupFile.lastModified);
+        }
         report.getTargetReportWriter().successfulFile();
       } catch (IOException e) {
         logger.error("Could not add file '{}'", backupFile.file);

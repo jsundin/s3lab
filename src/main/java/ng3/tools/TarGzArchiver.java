@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.DigestOutputStream;
 import s4lab.FileTools;
+import s4lab.TimeUtils;
 import s4lab.agent.Metadata;
 import s4lab.agent.SecurityException;
 
@@ -18,6 +19,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.security.Key;
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -56,27 +58,30 @@ public class TarGzArchiver {
     closeArchive();
   }
 
-  public void addFile(File file, String name) throws IOException {
-    boolean deleted = !file.exists();
+  public void deleteFile(File file, String name, ZonedDateTime deletionTime) throws IOException {
     TarArchiveEntry entry = getArchiveEntry(file, name);
-    if (deleted) {
-      entry.setUserName(DELETE_MARKER);
-      entry.setSize(0);
-    } else {
-      try {
-        Map<String, Object> attributes = Files.readAttributes(file.toPath(), "unix:uid,gid,mode");
-        entry.setIds((int) attributes.get("uid"), (int) attributes.get("gid"));
-        entry.setMode((int) attributes.get("mode"));
-      } catch (IllegalArgumentException ignored) {}
-      entry.setSize(file.length());
-      entry.setModTime(file.lastModified());
-    }
+    entry.setUserName(DELETE_MARKER);
+    entry.setSize(0);
+    entry.setModTime(TimeUtils.at(deletionTime).toDate());
     tarOutputStream.putArchiveEntry(entry);
-    if (!deleted) {
-      try (FileInputStream fis = new FileInputStream(file)) {
-        long len = IOUtils.copy(fis, tarOutputStream);
-        bytesInArchive += len;
-      }
+    tarOutputStream.closeArchiveEntry();
+    filesInArchive++;
+  }
+
+  public void addFile(File file, String name) throws IOException {
+    TarArchiveEntry entry = getArchiveEntry(file, name);
+    try {
+      Map<String, Object> attributes = Files.readAttributes(file.toPath(), "unix:uid,gid,mode");
+      entry.setIds((int) attributes.get("uid"), (int) attributes.get("gid"));
+      entry.setMode((int) attributes.get("mode"));
+    } catch (IllegalArgumentException ignored) {}
+    entry.setSize(file.length());
+    entry.setModTime(file.lastModified());
+
+    tarOutputStream.putArchiveEntry(entry);
+    try (FileInputStream fis = new FileInputStream(file)) {
+      long len = IOUtils.copy(fis, tarOutputStream);
+      bytesInArchive += len;
     }
     tarOutputStream.closeArchiveEntry();
     filesInArchive++;
