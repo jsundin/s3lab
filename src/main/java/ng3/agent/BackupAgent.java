@@ -43,8 +43,6 @@ public class BackupAgent {
 
     shutdownSynchronizer.addSemaphore(agentLock);
 
-    // TODO: testa delete-stöd i archiver
-
     // TODO: housekeeping - borde implementeras på samma vis som backupTask (som kan behöva ändras?)
     // OBS! housekeeping och backuptask schemaläggs separat, men måste blocka varandra
 
