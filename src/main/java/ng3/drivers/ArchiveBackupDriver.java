@@ -9,7 +9,7 @@ import ng3.common.ValuePair;
 import ng3.conf.Configuration;
 import ng3.conf.SizeToBytesDeserializer;
 import ng3.db.DbClient;
-import ng3.tools.TarGzArchiver;
+import ng3.common.TarGzArchiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

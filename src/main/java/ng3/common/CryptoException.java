@@ -1,4 +1,4 @@
-package ng3.crypt;
+package ng3.common;
 
 /**
  * @author johdin

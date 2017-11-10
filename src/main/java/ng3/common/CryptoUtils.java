@@ -1,4 +1,4 @@
-package ng3.crypt;
+package ng3.common;
 
 import ng3.Settings;
 

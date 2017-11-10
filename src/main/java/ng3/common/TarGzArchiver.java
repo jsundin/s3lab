@@ -1,8 +1,8 @@
-package ng3.tools;
+package ng3.common;
 
 import com.google.protobuf.ByteString;
 import ng3.Settings;
-import ng3.crypt.CryptoUtils;
+import ng3.common.CryptoUtils;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.io.IOUtils;

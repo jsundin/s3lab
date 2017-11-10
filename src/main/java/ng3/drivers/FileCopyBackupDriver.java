@@ -9,7 +9,7 @@ import ng3.agent.BackupReportWriter;
 import ng3.common.SimpleThreadFactory;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
-import ng3.crypt.CryptoUtils;
+import ng3.common.CryptoUtils;
 import ng3.db.DbClient;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
