@@ -51,8 +51,21 @@ public class BackupAgent {
     List<ScheduledFuture<?>> scheduledTasks = new ArrayList<>();
 
     BackupPlan plan = dbClient.getBackupPlan(planId);
+    /* TODO: vi har ett litet konstigt beteende här map beräkningen av tid..
+     *
+     * - anta att task1 och task2 ska exekveras med samma intervall, 1s
+     * - task1 tar 1s
+     * - direkt efter körs task2, tar 1s
+     * - det förväntade här är att task1 startas omedelbums efter task2, MEN eftersom de ligger på samma schemaläggare i samma tråd så PÅBÖRJAS väntningen med task1's 1s direkt efter task2 är klar
+     *
+     * en lösning på det här borde vara att köra separata schedulers för varje task och ha en semafor som blockar parallell exekvering
+     * frågan är om det är värt det i dagsläget?
+     * det KANSKE inte blir någon skillnad - men det kan vara värt att fundera på
+     */
     scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
-    scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob()));
+    if (configuration.getVersioning() != null) {
+      scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob()));
+    }
 
     while (true) {
       try {
