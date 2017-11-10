@@ -15,9 +15,9 @@ import java.util.List;
     @JsonSubTypes.Type(value = ArchiveBackupDriver.class, name = "archive")
 })
 public interface BackupDriver {
-  BackupSessionNG startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
+  BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
 
-  interface BackupSessionNG { // TODO: rename
+  interface BackupSession { // TODO: rename
     void endSession();
   }
 }

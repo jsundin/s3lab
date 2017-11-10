@@ -21,7 +21,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
-  public final BackupSessionNG startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
+  public final BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
     dbClient.buildQuery("update file set upload_started=null where upload_finished is null")
         .executeUpdate();
@@ -46,7 +46,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     return password;
   }
 
-  abstract public class AbstractBackupSession implements BackupDriver.BackupSessionNG, Runnable {
+  abstract public class AbstractBackupSession implements BackupSession, Runnable {
     protected final DbClient dbClient;
     protected final BackupReportWriter report;
     protected final List<BackupDirectory> backupDirectories;

@@ -35,6 +35,9 @@ public class BackupAgent {
   }
 
   public boolean run(boolean failOnBadDirectories, boolean forceBackupNow, boolean forceVersioningNow, boolean runOnce) {
+    boolean runBackup = true;
+    boolean runVersioning = configuration.getVersioning() != null;
+
     final List<BackupDirectory> backupDirectories = Collections.unmodifiableList(findBackupDirectories());
     if (failOnBadDirectories) {
       if (!checkDirectories(backupDirectories)) {
@@ -44,7 +47,7 @@ public class BackupAgent {
     }
 
     long t0 = System.currentTimeMillis();
-    countDownLatch = new CountDownLatch(1 + (configuration.getVersioning() == null ? 0 : 1));
+    countDownLatch = new CountDownLatch((runBackup ? 1 : 0) + (runVersioning ? 1 : 0));
     shutdownSynchronizer.addListener(shutdownListener);
 
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new SimpleThreadFactory("BackupTask"));
@@ -62,8 +65,10 @@ public class BackupAgent {
      * frågan är om det är värt det i dagsläget?
      * det KANSKE inte blir någon skillnad - men det kan vara värt att fundera på
      */
-    scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
-    if (configuration.getVersioning() != null) {
+    if (runBackup) {
+      scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
+    }
+    if (runVersioning) {
       scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob()));
     }
 
@@ -101,7 +106,7 @@ public class BackupAgent {
 
     BackupReportWriter report = new BackupReportWriter();
     report.setStartedAt(ZonedDateTime.now());
-    BackupDriver.BackupSessionNG session = configuration.getBackupDriver().startSession(dbClient, configuration, report, backupDirectories);
+    BackupDriver.BackupSession session = configuration.getBackupDriver().startSession(dbClient, configuration, report, backupDirectories);
     new FileScanner(dbClient, report, backupDirectories).scan();
     session.endSession();
 
