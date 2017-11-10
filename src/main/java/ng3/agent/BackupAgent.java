@@ -51,8 +51,8 @@ public class BackupAgent {
     List<ScheduledFuture<?>> scheduledTasks = new ArrayList<>();
 
     BackupPlan plan = dbClient.getBackupPlan(planId);
-    scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackup(backupDirectories)));
-    scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioning()));
+    scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
+    scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob()));
 
     while (true) {
       try {
@@ -76,31 +76,10 @@ public class BackupAgent {
       }
     }
     logger.info("BackupAgent shut down after {}", TimeUtils.formatMillis(System.currentTimeMillis() - t0));
-    return false;
+    return true;
   }
 
-  private ScheduledFuture<?> scheduleTask(ZonedDateTime lastExecution, int intervalInMinutes, boolean forceNow, boolean runOnce, ScheduledExecutorService scheduler, CountDownLatch countDownLatch, Runnable task) {
-    long initialDelay = computeInitialDelay(lastExecution, intervalInMinutes, forceNow);
-    ScheduledFuture<?> taskFuture[] = new ScheduledFuture[1];
-    taskFuture[0] = scheduler.scheduleAtFixedRate(() -> {
-      boolean failed = false;
-
-      try {
-        task.run();
-      } catch (Throwable error) {
-        logger.error("Unhandled internal error", error);
-        failed = true;
-      }
-
-      if (runOnce || failed) {
-        taskFuture[0].cancel(false);
-        countDownLatch.countDown();
-      }
-    }, initialDelay, intervalInMinutes, TimeUnit.MINUTES);
-    return taskFuture[0];
-  }
-
-  private void runBackup(List<BackupDirectory> backupDirectories) {
+  private void runBackupJob(List<BackupDirectory> backupDirectories) {
     BackupPlan plan = dbClient.getBackupPlan(planId);
     logger.debug("runBackup(), time since last started: {}", debugTimeSinceLast(plan.getLastStarted()));
 
@@ -116,7 +95,7 @@ public class BackupAgent {
     report.setFinishedAt(ZonedDateTime.now());
   }
 
-  private void runVersioning() {
+  private void runVersioningJob() {
     BackupPlan plan = dbClient.getBackupPlan(planId);
     logger.debug("runVersioning(), time since last started: {}", debugTimeSinceLast(plan.getLastVersioned()));
 
@@ -201,6 +180,31 @@ public class BackupAgent {
     return intervalInMinutes - minutesSinceLast;
   }
 
+  private ScheduledFuture<?> scheduleTask(ZonedDateTime lastExecution, int intervalInMinutes, boolean forceNow, boolean runOnce, ScheduledExecutorService scheduler, CountDownLatch countDownLatch, Runnable task) {
+    long initialDelay = computeInitialDelay(lastExecution, intervalInMinutes, forceNow);
+    ScheduledFuture<?> taskFuture[] = new ScheduledFuture[1];
+    taskFuture[0] = scheduler.scheduleAtFixedRate(() -> {
+      boolean failed = false;
+
+      try {
+        task.run();
+      } catch (Throwable error) {
+        logger.error("Unhandled internal error", error);
+        failed = true;
+      }
+
+      if (runOnce || failed) {
+        taskFuture[0].cancel(false);
+        countDownLatch.countDown();
+      }
+    }, initialDelay, intervalInMinutes, TimeUnit.MINUTES);
+    return taskFuture[0];
+  }
+
+  private String debugTimeSinceLast(ZonedDateTime lastExecution) {
+    return lastExecution == null ? "(never started)" : TimeUtils.formatMillis(ChronoUnit.MILLIS.between(lastExecution, ZonedDateTime.now()));
+  }
+
   private class ConfiguredDirectory {
     private final UUID id;
     private final File directory;
@@ -209,9 +213,5 @@ public class BackupAgent {
       this.id = id;
       this.directory = directory;
     }
-  }
-
-  private String debugTimeSinceLast(ZonedDateTime lastExecution) {
-    return lastExecution == null ? "(never started)" : TimeUtils.formatMillis(ChronoUnit.MILLIS.between(lastExecution, ZonedDateTime.now()));
   }
 }
