@@ -10,14 +10,28 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  */
 public class VersioningConfiguration {
   private final int intervalInMinutes;
+  private final VersioningStrategy deletedFilesStrategy;
+  private final VersioningStrategy oldVersionsStrategy;
 
   @JsonCreator
   public VersioningConfiguration(
-      @JsonProperty("interval") @JsonDeserialize(using = IntervalToMinutesDeserializer.class) int intervalInMinutes) {
+      @JsonProperty("interval") @JsonDeserialize(using = IntervalToMinutesDeserializer.class) int intervalInMinutes,
+      @JsonProperty("deleted-files") VersioningStrategy deletedFilesStrategy,
+      @JsonProperty("old-versions") VersioningStrategy oldVersionsStrategy) {
     this.intervalInMinutes = intervalInMinutes;
+    this.deletedFilesStrategy = deletedFilesStrategy;
+    this.oldVersionsStrategy = oldVersionsStrategy;
   }
 
   public int getIntervalInMinutes() {
     return intervalInMinutes;
+  }
+
+  public VersioningStrategy getDeletedFilesStrategy() {
+    return deletedFilesStrategy;
+  }
+
+  public VersioningStrategy getOldVersionsStrategy() {
+    return oldVersionsStrategy;
   }
 }

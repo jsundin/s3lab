@@ -29,13 +29,21 @@
       "directory": "/home/jsundin/tmp/old-stuff"
     }
   ],
-  "interval": "1m",
+  "interval": "1w",
   "versioning": {
-    "interval": "1m"
+    "interval": "1m",
+    "deleted-files": {
+      "strategy": "delete-after",
+      "delete-after": "1w"
+    },
+    "old-versions": {
+      "strategy": "keep-versions",
+      "keep-versions": 7
+    }
   },
   "target": {
-    "driver": "archive",
-    "archive-prefix": "/tmp/backup-"
+    "driver": "file-copy",
+    "path": "/tmp/backups"
   },
   "secrets": {
     "copy-key": "secret password",

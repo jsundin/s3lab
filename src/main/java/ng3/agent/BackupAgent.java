@@ -8,6 +8,7 @@ import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
 import ng3.drivers.BackupDriver;
+import ng3.drivers.VersionedBackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
@@ -69,7 +70,7 @@ public class BackupAgent {
       scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
     }
     if (runVersioning) {
-      scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob()));
+      scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob(backupDirectories)));
     }
 
     while (true) {
@@ -99,7 +100,7 @@ public class BackupAgent {
 
   private void runBackupJob(List<BackupDirectory> backupDirectories) {
     BackupPlan plan = dbClient.getBackupPlan(planId);
-    logger.debug("runBackup(), time since last started: {}", debugTimeSinceLast(plan.getLastStarted()));
+    logger.debug("runBackupJob(), time since last started: {}", debugTimeSinceLast(plan.getLastStarted()));
 
     plan.setLastStarted(ZonedDateTime.now());
     dbClient.saveBackupPlan(plan);
@@ -113,12 +114,17 @@ public class BackupAgent {
     report.setFinishedAt(ZonedDateTime.now());
   }
 
-  private void runVersioningJob() {
+  private void runVersioningJob(List<BackupDirectory> backupDirectories) {
     BackupPlan plan = dbClient.getBackupPlan(planId);
-    logger.debug("runVersioning(), time since last started: {}", debugTimeSinceLast(plan.getLastVersioned()));
+    logger.debug("runVersioningJob(), time since last started: {}", debugTimeSinceLast(plan.getLastVersioned()));
 
     plan.setLastVersioned(ZonedDateTime.now());
     dbClient.saveBackupPlan(plan);
+
+    VersionedBackupDriver versionedDriver = (VersionedBackupDriver) configuration.getBackupDriver();
+    for (BackupDirectory backupDirectory : backupDirectories) {
+      versionedDriver.performVersioning(dbClient, configuration, backupDirectory);
+    }
   }
 
   private Runnable shutdownListener = () -> {

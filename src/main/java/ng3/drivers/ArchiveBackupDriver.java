@@ -5,11 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
+import ng3.common.TarGzArchiver;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
 import ng3.conf.SizeToBytesDeserializer;
 import ng3.db.DbClient;
-import ng3.common.TarGzArchiver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +24,7 @@ import java.util.UUID;
  * @since 2017-11-06
  */
 public class ArchiveBackupDriver extends AbstractBackupDriver {
+  public static final String INFORMAL_NAME = "archive";
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String archivePrefix;
   private final boolean compress;
@@ -51,6 +52,11 @@ public class ArchiveBackupDriver extends AbstractBackupDriver {
 
     TarGzArchiver archiver = new TarGzArchiver(archivePrefix, compress, password, maxFilesInArchive, maxBytesInArchive);
     return new ArchiveBackupSession(dbClient, report, backupDirectories, archiver);
+  }
+
+  @Override
+  public String getInformalName() {
+    return INFORMAL_NAME;
   }
 
   private class ArchiveBackupSession extends AbstractBackupSession {

@@ -6,10 +6,10 @@ import com.google.protobuf.ByteString;
 import ng3.BackupDirectory;
 import ng3.Settings;
 import ng3.agent.BackupReportWriter;
+import ng3.common.CryptoUtils;
 import ng3.common.SimpleThreadFactory;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
-import ng3.common.CryptoUtils;
 import ng3.db.DbClient;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -34,7 +34,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
-public class FileCopyBackupDriver extends AbstractBackupDriver {
+public class FileCopyBackupDriver extends AbstractBackupDriver implements VersionedBackupDriver {
+  public static final String INFORMAL_NAME = "file-copy";
   private static final String COMPRESS_EXTENSION = ".gz";
   private static final String ENCRYPT_EXTENSION = ".crypt";
   private static final String DELETED_EXTENSION = ".deleted";
@@ -59,9 +60,29 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
   }
 
   @Override
+  public String getInformalName() {
+    return INFORMAL_NAME;
+  }
+
+  @Override
   protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     char[] password = getPassword(encryptionKey, configuration, report);
     return new FileCopyBackupSession(dbClient, report, backupDirectories, password);
+  }
+
+  @Override
+  public void performVersioning(DbClient dbClient, Configuration configuration, BackupDirectory backupDirectory) {
+    File directory = backupDirectory.getConfiguration().getDirectory();
+    String storeAs = backupDirectory.getConfiguration().getStoreAs();
+
+    File target;
+    if (storeAs == null) {
+      target = new File(path, directory.toString());
+    } else {
+      target = new File(path, storeAs);
+    }
+
+    System.out.println(">> " + target);
   }
 
   public class FileCopyBackupSession extends AbstractBackupSession {
