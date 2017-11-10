@@ -11,12 +11,12 @@ import java.lang.management.ManagementFactory;
 public class PidfileWriter {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final File file;
-  private final LatchSynchronizer latchSynchronizer;
+  private final ShutdownSynchronizer shutdownSynchronizer;
   private volatile boolean finished = false;
 
-  public PidfileWriter(File file, LatchSynchronizer latchSynchronizer) {
+  public PidfileWriter(File file, ShutdownSynchronizer shutdownSynchronizer) {
     this.file = file;
-    this.latchSynchronizer = latchSynchronizer;
+    this.shutdownSynchronizer = shutdownSynchronizer;
   }
 
   public boolean start() {
@@ -57,7 +57,7 @@ public class PidfileWriter {
       while (!finished) {
         if (!file.exists()) {
           logger.debug("'{}' was removed", file);
-          latchSynchronizer.releaseAllSemaphores();
+          shutdownSynchronizer.notifyListeners();
           break;
         }
 

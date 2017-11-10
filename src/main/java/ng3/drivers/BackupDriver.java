@@ -17,7 +17,7 @@ import java.util.List;
 public interface BackupDriver {
   BackupSessionNG startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
 
-  interface BackupSessionNG {
+  interface BackupSessionNG { // TODO: rename
     void endSession();
   }
 }

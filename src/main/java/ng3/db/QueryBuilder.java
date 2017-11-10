@@ -163,7 +163,7 @@ public class QueryBuilder {
     }
 
     public QueryBuilder timestampValue(int index, ZonedDateTime value) {
-      Timestamp ts = TimeUtils.at(value).toTimestamp(ZoneOffset.UTC);
+      Timestamp ts = value == null ? null : TimeUtils.at(value).toTimestamp(ZoneOffset.UTC);
       try {
         preparedStatement.setTimestamp(index, ts);
         return QueryBuilder.this;

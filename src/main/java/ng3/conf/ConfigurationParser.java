@@ -68,7 +68,8 @@ public class ConfigurationParser {
             parsedConf.getDatabase(),
             parsedConf.getIntervalInMinutes(),
             parsedConf.getBackupDriver(),
-            parseSecrets(parsedConf.getSecrets()));
+            parseSecrets(parsedConf.getSecrets()),
+            parsedConf.getVersioning());
   }
 
   private Map<String, char[]> parseSecrets(Map<String, String> secrets) throws IOException {

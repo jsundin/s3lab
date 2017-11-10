@@ -30,6 +30,9 @@
     }
   ],
   "interval": "1m",
+  "versioning": {
+    "interval": "1m"
+  },
   "target": {
     "driver": "archive",
     "archive-prefix": "/tmp/backup-"

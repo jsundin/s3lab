@@ -1,8 +1,8 @@
 package ng3;
 
 import ng3.agent.BackupAgent;
-import ng3.common.LatchSynchronizer;
 import ng3.common.PidfileWriter;
+import ng3.common.ShutdownSynchronizer;
 import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
 import ng3.conf.ConfigurationParser;
@@ -25,10 +25,17 @@ public class Main {
   private static final String OPT_CONFIGURATION = "c";
   private static final String OPT_FAIL_ON_BAD_DIRECTORIES = "fobd";
   private static final String OPT_FORCE_BACKUP_NOW = "f";
+  private static final String OPT_FORCE_VERSIONING_NOW = "fv";
   private static final String OPT_RUN_ONCE = "o";
   private static final String OPT_PIDFILE = "pf";
 
   public static void main(String[] args) {
+    // TODO: housekeeping - borde implementeras på samma vis som backupTask (som kan behöva ändras?)
+    // OBS! housekeeping och backuptask schemaläggs separat, men måste blocka varandra
+
+    // TODO: notifications - baserade på backupreport
+
+    // TODO: möjlighet att auto-stänga av backup om en backuprapport indikerar fel
     Security.insertProviderAt(new BouncyCastleProvider(), 1);
     CommandLine commandLine = null;
     try {
@@ -78,7 +85,7 @@ public class Main {
               .executeUpdate();
     }
 
-    LatchSynchronizer shutdownSynchronizer = new LatchSynchronizer();
+    ShutdownSynchronizer shutdownSynchronizer = new ShutdownSynchronizer();
 
     PidfileWriter pidfileWriter = null;
     if (commandLine.hasOption(OPT_PIDFILE)) {
@@ -96,6 +103,7 @@ public class Main {
         success[0] = backupAgent.run(
                 commandLine.hasOption(OPT_FAIL_ON_BAD_DIRECTORIES),
                 commandLine.hasOption(OPT_FORCE_BACKUP_NOW),
+                commandLine.hasOption(OPT_FORCE_VERSIONING_NOW),
                 commandLine.hasOption(OPT_RUN_ONCE));
       } catch (Throwable error) {
         logger.error("Unhandled error in plan '{}'", planId);
@@ -151,6 +159,11 @@ public class Main {
             .desc("Force backup immediately, ignoring when last backup was made")
             .build();
 
+    Option opt_forceVersioningNow = Option.builder(OPT_FORCE_VERSIONING_NOW)
+            .longOpt("version-now")
+            .desc("Force versioning immediately, ignoring when last versioning was made")
+            .build();
+
     Option opt_runOnce = Option.builder(OPT_RUN_ONCE)
             .longOpt("run-once")
             .desc("Run only once, then exit")
@@ -173,6 +186,7 @@ public class Main {
     mainOptions.addOption(opt_forceBackupNow);
     mainOptions.addOption(opt_runOnce);
     mainOptions.addOption(opt_pidfile);
+    mainOptions.addOption(opt_forceVersioningNow);
 
     CommandLineParser commandLineParser = new DefaultParser();
     CommandLine commandLine = commandLineParser.parse(helpOptions, args, true);

@@ -12,13 +12,15 @@ public class Configuration {
   private final int intervalInMinutes;
   private final BackupDriver backupDriver;
   private final Map<String, char[]> secrets;
+  private final VersioningConfiguration versioning;
 
-  public Configuration(List<DirectoryConfiguration> directories, DatabaseConfiguration database, int intervalInMinutes, BackupDriver backupDriver, Map<String, char[]> secrets) {
+  public Configuration(List<DirectoryConfiguration> directories, DatabaseConfiguration database, int intervalInMinutes, BackupDriver backupDriver, Map<String, char[]> secrets, VersioningConfiguration versioning) {
     this.directories = Collections.unmodifiableList(directories);
     this.database = database;
     this.intervalInMinutes = intervalInMinutes;
     this.backupDriver = backupDriver;
     this.secrets = secrets;
+    this.versioning = versioning;
   }
 
   public List<DirectoryConfiguration> getDirectories() {
@@ -39,5 +41,9 @@ public class Configuration {
 
   public Map<String, char[]> getSecrets() {
     return secrets;
+  }
+
+  public VersioningConfiguration getVersioning() {
+    return versioning;
   }
 }

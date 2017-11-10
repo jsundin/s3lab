@@ -6,6 +6,7 @@ import java.util.UUID;
 public class BackupPlan {
   private final UUID id;
   private ZonedDateTime lastStarted;
+  private ZonedDateTime lastVersioned;
 
   public BackupPlan(UUID id) {
     this.id = id;
@@ -21,5 +22,13 @@ public class BackupPlan {
 
   public void setLastStarted(ZonedDateTime lastStarted) {
     this.lastStarted = lastStarted;
+  }
+
+  public ZonedDateTime getLastVersioned() {
+    return lastVersioned;
+  }
+
+  public void setLastVersioned(ZonedDateTime lastVersioned) {
+    this.lastVersioned = lastVersioned;
   }
 }

@@ -15,6 +15,7 @@ class ParsedConfiguration {
   private int intervalInMinutes;
   private BackupDriver backupDriver;
   private Map<String, String> secrets;
+  private VersioningConfiguration versioning;
 
   public int getIntervalInMinutes() {
     return intervalInMinutes;
@@ -66,5 +67,13 @@ class ParsedConfiguration {
 
   public void setSecrets(Map<String, String> secrets) {
     this.secrets = secrets;
+  }
+
+  public VersioningConfiguration getVersioning() {
+    return versioning;
+  }
+
+  public void setVersioning(VersioningConfiguration versioning) {
+    this.versioning = versioning;
   }
 }

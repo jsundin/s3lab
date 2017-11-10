@@ -2,37 +2,39 @@ package ng3.agent;
 
 import ng3.BackupDirectory;
 import ng3.BackupPlan;
-import ng3.common.LatchSynchronizer;
+import ng3.common.ShutdownSynchronizer;
+import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
-import ng3.drivers.AbstractBackupDriver;
+import ng3.drivers.BackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
 
 import java.io.File;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class BackupAgent {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final LatchSynchronizer shutdownSynchronizer;
+  private final ShutdownSynchronizer shutdownSynchronizer;
   private final UUID planId;
   private final DbClient dbClient;
   private final Configuration configuration;
-  private final Semaphore agentLock = new Semaphore(0);
+  private CountDownLatch countDownLatch;
 
-  public BackupAgent(LatchSynchronizer shutdownSynchronizer, UUID planId, DbClient dbClient, Configuration configuration) {
+  public BackupAgent(ShutdownSynchronizer shutdownSynchronizer, UUID planId, DbClient dbClient, Configuration configuration) {
     this.shutdownSynchronizer = shutdownSynchronizer;
     this.planId = planId;
     this.dbClient = dbClient;
     this.configuration = configuration;
   }
 
-  public boolean run(boolean failOnBadDirectories, boolean forceBackupNow, boolean runOnce) throws Exception {
+  public boolean run(boolean failOnBadDirectories, boolean forceBackupNow, boolean forceVersioningNow, boolean runOnce) {
     final List<BackupDirectory> backupDirectories = Collections.unmodifiableList(findBackupDirectories());
     if (failOnBadDirectories) {
       if (!checkDirectories(backupDirectories)) {
@@ -41,27 +43,93 @@ public class BackupAgent {
       logger.debug("All configured directories seem to be accessible");
     }
 
-    shutdownSynchronizer.addSemaphore(agentLock);
-
-    // TODO: housekeeping - borde implementeras på samma vis som backupTask (som kan behöva ändras?)
-    // OBS! housekeeping och backuptask schemaläggs separat, men måste blocka varandra
-
-    // TODO: notifications - baserade på backupreport
-
-    // TODO: möjlighet att auto-stänga av backup om en backuprapport indikerar fel
-
     long t0 = System.currentTimeMillis();
-    BackupTaskController backupTaskController = new BackupTaskController(backupDirectories);
-    ScheduledBackupTask backupTask = new ScheduledBackupTask(backupTaskController, runOnce);
-    backupTask.scheduleTask(forceBackupNow);
+    countDownLatch = new CountDownLatch(1 + (configuration.getVersioning() == null ? 0 : 1));
+    shutdownSynchronizer.addListener(shutdownListener);
 
-    agentLock.acquire(); // wait for jobs to complete
-    shutdownSynchronizer.removeSemaphore(agentLock);
-    backupTask.shutdown();
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new SimpleThreadFactory("BackupTask"));
+    List<ScheduledFuture<?>> scheduledTasks = new ArrayList<>();
 
-    logger.info("Executed {} backups in {}, finishing {}", backupTask.getExecutionCount(), TimeUtils.formatMillis(System.currentTimeMillis() - t0), backupTaskController.hasErrors() ? "with error(s)" : "successfully");
-    return !backupTaskController.hasErrors();
+    BackupPlan plan = dbClient.getBackupPlan(planId);
+    scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackup(backupDirectories)));
+    scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioning()));
+
+    while (true) {
+      try {
+        countDownLatch.await();
+        break;
+      } catch (InterruptedException ignored) {
+        Thread.interrupted();
+      }
+    }
+    shutdownSynchronizer.removeListener(shutdownListener);
+    for (ScheduledFuture<?> scheduledTask : scheduledTasks) {
+      scheduledTask.cancel(false);
+    }
+    scheduler.shutdown();
+    while (true) {
+      try {
+        scheduler.awaitTermination(999, TimeUnit.DAYS); // TODO: -> Settings
+        break;
+      } catch (InterruptedException ignored) {
+        Thread.interrupted();
+      }
+    }
+    logger.info("BackupAgent shut down after {}", TimeUtils.formatMillis(System.currentTimeMillis() - t0));
+    return false;
   }
+
+  private ScheduledFuture<?> scheduleTask(ZonedDateTime lastExecution, int intervalInMinutes, boolean forceNow, boolean runOnce, ScheduledExecutorService scheduler, CountDownLatch countDownLatch, Runnable task) {
+    long initialDelay = computeInitialDelay(lastExecution, intervalInMinutes, forceNow);
+    ScheduledFuture<?> taskFuture[] = new ScheduledFuture[1];
+    taskFuture[0] = scheduler.scheduleAtFixedRate(() -> {
+      boolean failed = false;
+
+      try {
+        task.run();
+      } catch (Throwable error) {
+        logger.error("Unhandled internal error", error);
+        failed = true;
+      }
+
+      if (runOnce || failed) {
+        taskFuture[0].cancel(false);
+        countDownLatch.countDown();
+      }
+    }, initialDelay, intervalInMinutes, TimeUnit.MINUTES);
+    return taskFuture[0];
+  }
+
+  private void runBackup(List<BackupDirectory> backupDirectories) {
+    BackupPlan plan = dbClient.getBackupPlan(planId);
+    logger.debug("runBackup(), time since last started: {}", debugTimeSinceLast(plan.getLastStarted()));
+
+    plan.setLastStarted(ZonedDateTime.now());
+    dbClient.saveBackupPlan(plan);
+
+    BackupReportWriter report = new BackupReportWriter();
+    report.setStartedAt(ZonedDateTime.now());
+    BackupDriver.BackupSessionNG session = configuration.getBackupDriver().startSession(dbClient, configuration, report, backupDirectories);
+    new FileScanner(dbClient, report, backupDirectories).scan();
+    session.endSession();
+
+    report.setFinishedAt(ZonedDateTime.now());
+  }
+
+  private void runVersioning() {
+    BackupPlan plan = dbClient.getBackupPlan(planId);
+    logger.debug("runVersioning(), time since last started: {}", debugTimeSinceLast(plan.getLastVersioned()));
+
+    plan.setLastVersioned(ZonedDateTime.now());
+    dbClient.saveBackupPlan(plan);
+  }
+
+  private Runnable shutdownListener = () -> {
+    logger.debug("External shutdown");
+    while (countDownLatch.getCount() > 0) {
+      countDownLatch.countDown();
+    }
+  };
 
   private boolean checkDirectories(List<BackupDirectory> backupDirectories) {
     boolean hasErrors = false;
@@ -125,6 +193,14 @@ public class BackupAgent {
     return backupDirectories;
   }
 
+  private long computeInitialDelay(ZonedDateTime lastExecution, int intervalInMinutes, boolean now) {
+    if (now || lastExecution == null) {
+      return 0;
+    }
+    long minutesSinceLast = ChronoUnit.MINUTES.between(lastExecution, ZonedDateTime.now());
+    return intervalInMinutes - minutesSinceLast;
+  }
+
   private class ConfiguredDirectory {
     private final UUID id;
     private final File directory;
@@ -135,65 +211,7 @@ public class BackupAgent {
     }
   }
 
-  private class BackupTaskController implements ScheduledBackupTask.Controller {
-    private Throwable error;
-    private final List<BackupDirectory> backupDirectories;
-
-    private BackupTaskController(List<BackupDirectory> backupDirectories) {
-      this.backupDirectories = backupDirectories;
-    }
-
-    @Override
-    public void backupTaskStarted() {
-      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
-      backupPlan.setLastStarted(ZonedDateTime.now());
-      dbClient.saveBackupPlan(backupPlan);
-    }
-
-    @Override
-    public ZonedDateTime getNextExecutionTime() {
-      ZonedDateTime next = null;
-      BackupPlan backupPlan = dbClient.getBackupPlan(planId);
-      if (backupPlan.getLastStarted() != null) {
-        next = backupPlan.getLastStarted().plusMinutes(configuration.getIntervalInMinutes());
-        if (next.isBefore(ZonedDateTime.now())) {
-          next = null;
-        }
-      }
-      return next;
-    }
-
-    @Override
-    public void executeJob() {
-      BackupReportWriter report = new BackupReportWriter();
-      report.setStartedAt(ZonedDateTime.now());
-
-      AbstractBackupDriver.BackupSessionNG backupSession = configuration.getBackupDriver().startSession(dbClient, configuration, report, backupDirectories);
-
-      new FileScanner(dbClient, report, backupDirectories).scan();
-
-      backupSession.endSession();
-
-      report.setFinishedAt(ZonedDateTime.now());
-      System.out.println("----");
-      System.out.println(report);
-      System.out.println("----");
-    }
-
-    @Override
-    public void schedulingFinished() {
-      agentLock.release();
-    }
-
-    @Override
-    public void onError(Throwable t) {
-      logger.error("Unhandled error", t);
-      error = t;
-      agentLock.release();
-    }
-
-    boolean hasErrors() {
-      return error != null;
-    }
+  private String debugTimeSinceLast(ZonedDateTime lastExecution) {
+    return lastExecution == null ? "(never started)" : TimeUtils.formatMillis(ChronoUnit.MILLIS.between(lastExecution, ZonedDateTime.now()));
   }
 }

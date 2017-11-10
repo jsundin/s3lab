@@ -1,6 +1,7 @@
 create table plan (
     plan_id varchar(36),
     last_started timestamp,
+    last_versioned timestamp,
 
     primary key (plan_id)
 );
