@@ -34,29 +34,27 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
-public class FileCopyBackupDriver extends AbstractBackupDriver implements VersionedBackupDriver {
+public class FileCopyBackupDriver extends AbstractBackupDriver {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   public static final String INFORMAL_NAME = "file-copy";
-  private static final String COMPRESS_EXTENSION = ".gz";
-  private static final String ENCRYPT_EXTENSION = ".crypt";
-  private static final String DELETED_EXTENSION = ".deleted";
-  private static final String META_EXTENSION = ".meta";
-
-  private Logger logger = LoggerFactory.getLogger(getClass());
+  private final static String FILE_PREFIX = "$";
+  private final static String META_EXTENSION = ".meta";
+  private final static String DELETED_EXTENSION = ",DELETED";
   private final File path;
   private final int threads;
-  private final String encryptionKey;
   private final boolean compress;
+  private final String encryptionKey;
 
   @JsonCreator
   public FileCopyBackupDriver(
-          @JsonProperty("path") File path,
-          @JsonProperty("threads") Integer threads,
-          @JsonProperty("encrypt-with") String encryptionKey,
-          @JsonProperty("compress") boolean compress) {
+      @JsonProperty("path") File path,
+      @JsonProperty("threads") Integer threads,
+      @JsonProperty("compress") boolean compress,
+      @JsonProperty("encrypt-with") String encryptionKey) {
     this.path = path;
     this.threads = threads == null || threads < 2 ? 1 : threads;
-    this.encryptionKey = encryptionKey;
     this.compress = compress;
+    this.encryptionKey = encryptionKey;
   }
 
   @Override
@@ -67,40 +65,24 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
   @Override
   protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     char[] password = getPassword(encryptionKey, configuration, report);
-    return new FileCopyBackupSession(dbClient, report, backupDirectories, password);
+    return new BackupSession(dbClient, report, backupDirectories, threads, password);
   }
 
-  @Override
-  public void performVersioning(DbClient dbClient, Configuration configuration, BackupDirectory backupDirectory) {
-    File directory = backupDirectory.getConfiguration().getDirectory();
-    String storeAs = backupDirectory.getConfiguration().getStoreAs();
-
-    File target;
-    if (storeAs == null) {
-      target = new File(path, directory.toString());
-    } else {
-      target = new File(path, storeAs);
-    }
-
-    System.out.println(">> " + target);
-  }
-
-  public class FileCopyBackupSession extends AbstractBackupSession {
+  public class BackupSession extends AbstractBackupDriver.AbstractBackupSession {
     private final ExecutorService executor;
     private final Semaphore threadSemaphore;
-    private final Map<UUID, ValuePair<File, String>> backupTargets = new HashMap<>();
+    private final Map<UUID, ValuePair<File, String>> backupTargets;
     private final char[] encryptionPassword;
+    private final int threads;
 
-    FileCopyBackupSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories, char[] encryptionPassword) {
+    BackupSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories, int threads, char[] encryptionPassword) {
       super(dbClient, report, backupDirectories);
-      this.encryptionPassword = encryptionPassword;
       executor = Executors.newFixedThreadPool(threads, new SimpleThreadFactory("FileCopy"));
       threadSemaphore = new Semaphore(threads);
-    }
+      this.threads = threads;
+      this.encryptionPassword = encryptionPassword;
 
-    @Override
-    protected void init() {
-      super.init();
+      backupTargets = new HashMap<>();
       for (BackupDirectory backupDirectory : backupDirectories) {
         UUID id = backupDirectory.getId();
         File directory = backupDirectory.getConfiguration().getDirectory();
@@ -121,7 +103,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
       executor.shutdown();
       while (true) {
         try {
-          executor.awaitTermination(999, TimeUnit.DAYS);
+          executor.awaitTermination(999, TimeUnit.DAYS); // TODO: -> Settings
           break;
         } catch (InterruptedException ignored) {
           Thread.interrupted();
@@ -150,6 +132,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
       }
       fqfn = fqfn.substring(prefix.length());
       target = new File(target, fqfn);
+      target = new File(target.getParent(), FILE_PREFIX + target.getName());
 
       CopyFileTask copyFileTask;
       if (encryptionPassword == null) {
@@ -163,8 +146,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
       threadSemaphore.acquireUninterruptibly();
       executor.submit(() -> {
         try {
-          Boolean result = copyFileTask.execute();
-          if (result) {
+          if (copyFileTask.execute()) {
             report.getTargetReportWriter().successfulFile();
           } else {
             report.getTargetReportWriter().failedFile();
@@ -187,11 +169,11 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
     private final Key key;
     private final byte[] salt;
 
-    private CopyFileTask(File src, File target) {
+    public CopyFileTask(File src, File target) {
       this.src = src;
       this.target = target;
-      key = null;
-      salt = null;
+      this.key = null;
+      this.salt = null;
     }
 
     private CopyFileTask(File src, File target, Key key, byte[] salt) {
@@ -202,56 +184,50 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
     }
 
     private boolean execute() throws Exception {
-      if (!src.exists()) {
-        return delete();
-      } else {
-        return copy();
-      }
-    }
-
-    private boolean delete() throws Exception {
-      File target = FileTools.addExtension(getFile(this.target), DELETED_EXTENSION);
-      try (FileOutputStream ignored = new FileOutputStream(target)) {
-      }
-      return true;
+      return src.exists() ? copy() : delete();
     }
 
     private boolean copy() throws Exception {
-      DigestOutputStream fileOut = null;
-      OutputStream lastOut = null;
-      CipherOutputStream cipherOut = null;
-      GZIPOutputStream gzOut = null;
-      byte[] iv = null;
-
-      File target = getFile(this.target);
-      if (!target.getParentFile().exists()) {
-        if (!target.getParentFile().mkdirs()) {
-          logger.error("Could not create directory '{}'", target.getParentFile());
+      if (!target.exists()) {
+        if (!target.mkdirs()) {
+          logger.error("Could not create directories for '{}' (target '{}')", src, target);
           return false;
         }
       }
 
-      try (FileInputStream fileIn = new FileInputStream(src)) {
-        lastOut = fileOut = new DigestOutputStream(new FileOutputStream(target));
+      if (!target.isDirectory()) {
+        logger.error("Target '{}' is not a directory", target);
+        return false;
+      }
+
+      File targetFile = getVersionedFile();
+      OutputStream out = null;
+      DigestOutputStream digestOut = null;
+      CipherOutputStream cipherOut = null;
+      GZIPOutputStream gzOut = null;
+      byte[] iv = null;
+
+      try (FileInputStream in = new FileInputStream(src)) {
+        out = digestOut = new DigestOutputStream(new FileOutputStream(targetFile));
 
         if (key != null && salt != null) {
           iv = CryptoUtils.generateIV();
-          lastOut = cipherOut = CryptoUtils.getEncryptionOutputStream(key, iv, lastOut);
+          out = cipherOut = CryptoUtils.getEncryptionOutputStream(key, iv, out);
         }
 
         if (compress) {
-          lastOut = gzOut = new GZIPOutputStream(lastOut);
+          out = gzOut = new GZIPOutputStream(out);
         }
 
-        IOUtils.copy(fileIn, lastOut);
+        IOUtils.copy(in, out);
       } finally {
-        IOUtils.closeQuietly(gzOut, cipherOut, fileOut);
+        IOUtils.closeQuietly(gzOut, cipherOut, digestOut);
       }
 
       Metadata.FileMeta.Builder metaBuilder = Metadata.FileMeta.newBuilder()
-              .setFormatVersion(1) // TODO: byt namn på proto-nyckel
-              .setEncrypted(key != null)
-              .setFileMD5(ByteString.copyFrom(fileOut.getDigest()));
+          .setFormatVersion(1) // TODO: bort med nyckel!
+          .setEncrypted(key != null)
+          .setFileMD5(ByteString.copyFrom(digestOut.getDigest()));
 
       if (key != null && salt != null) {
         metaBuilder.setKeyIterations(Settings.KEY_ITERATIONS);
@@ -262,8 +238,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
         metaBuilder.setIv(ByteString.copyFrom(iv));
       }
       Metadata.FileMeta meta = metaBuilder.build();
-
-      File metaFile = FileTools.addExtension(target, META_EXTENSION);
+      File metaFile = FileTools.addExtension(targetFile, META_EXTENSION);
       try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
         meta.writeTo(metaOut);
       }
@@ -271,24 +246,29 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
       return true;
     }
 
-    private File getFile(File src) {
-      File file = src;
-      if (compress) {
-        file = FileTools.addExtension(file, COMPRESS_EXTENSION);
+    private boolean delete() throws Exception {
+      if (!target.exists()) {
+        return true; // file never existed, we don't need to mark it as deleted
       }
-      if (key != null && salt != null) {
-        file = FileTools.addExtension(file, ENCRYPT_EXTENSION);
+
+      if (!target.isDirectory()) {
+        logger.error("Target '{}' is not a directory", target);
       }
-      return getVersionedFile(file);
+
+      File targetFile = getVersionedFile();
+      try (FileOutputStream out = new FileOutputStream(FileTools.addExtension(targetFile, DELETED_EXTENSION))) {
+
+      }
+      return true;
     }
 
-    private File getVersionedFile(File src) {
-      File test;
+    private File getVersionedFile() {
       int n = 1;
+      File f;
       do {
-        test = FileTools.addExtension(src, "," + n++);
-      } while (test.exists() || FileTools.addExtension(test, DELETED_EXTENSION).exists());
-      return test;
+        f = new File(target, "" + n++);
+      } while (f.exists() || FileTools.addExtension(f, DELETED_EXTENSION).exists());
+      return f;
     }
   }
 }
