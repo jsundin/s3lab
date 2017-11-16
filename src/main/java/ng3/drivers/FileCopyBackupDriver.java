@@ -283,11 +283,11 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
     }
 
     private File getVersionedFile(File src) {
-      File test = src;
+      File test;
       int n = 1;
-      while (test.exists() || FileTools.addExtension(test, DELETED_EXTENSION).exists()) {
+      do {
         test = FileTools.addExtension(src, "," + n++);
-      }
+      } while (test.exists() || FileTools.addExtension(test, DELETED_EXTENSION).exists());
       return test;
     }
   }
