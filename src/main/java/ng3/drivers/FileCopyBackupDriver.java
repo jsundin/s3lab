@@ -24,17 +24,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.security.Key;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
-public class FileCopyBackupDriver extends AbstractBackupDriver {
+public class FileCopyBackupDriver extends AbstractBackupDriver implements VersionedBackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   public static final String INFORMAL_NAME = "file-copy";
   private final static String FILE_PREFIX = "$";
@@ -66,6 +65,64 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
   protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     char[] password = getPassword(encryptionKey, configuration, report);
     return new BackupSession(dbClient, report, backupDirectories, threads, password);
+  }
+
+  @Override
+  public void performVersioning(DbClient dbClient, Configuration configuration, BackupDirectory backupDirectory) {
+    File target;
+    if (backupDirectory.getConfiguration().getStoreAs() == null) {
+      target = new File(path, backupDirectory.getConfiguration().getDirectory().toString());
+    } else {
+      target = new File(path, backupDirectory.getConfiguration().getStoreAs());
+    }
+    performDirectoryVersioning(target);
+  }
+
+  private void performDirectoryVersioning(File directory) {
+    File[] files = directory.listFiles();
+    if (files == null) {
+      logger.warn("Could not access directory '{}'", directory);
+      return;
+    }
+
+    // TODO: om katalogen är tom så kan vi ta bort den
+    for (File file : files) {
+      if (file.isDirectory()) {
+        if (!file.getName().startsWith(FILE_PREFIX)) {
+          performDirectoryVersioning(file);
+        } else {
+          performFileVersioning(file);
+        }
+      } else {
+        logger.warn("Unexpected file '{}' - don't really know what to do with this -- ignored", file);
+      }
+    }
+  }
+
+  private void performFileVersioning(File fileDirectory) {
+    // TODO: om filkatalogen är tom så kan vi ta bort den
+    File[] fileVersions = fileDirectory.listFiles();
+    if (fileVersions == null) {
+      logger.warn("Could not access file-directory '{}'", fileDirectory);
+      return;
+    }
+
+    Set<Integer> uniqueVersions = new HashSet<>();
+    for (File fileVersion : fileVersions) {
+      Pattern pattern = Pattern.compile("^(?<version>[0-9]+).*");
+      Matcher m = pattern.matcher(fileVersion.getName());
+      if (!m.matches()) {
+        logger.warn("No version information in file '{}'", fileVersion);
+        continue;
+      }
+
+      int version = Integer.parseInt(m.group("version"));
+      uniqueVersions.add(version);
+    }
+
+    List<Integer> versions = new ArrayList<>(uniqueVersions);
+    Collections.sort(versions);
+    System.out.println(fileDirectory + ": " + versions);
   }
 
   public class BackupSession extends AbstractBackupDriver.AbstractBackupSession {
