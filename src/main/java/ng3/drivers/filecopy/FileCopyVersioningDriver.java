@@ -3,12 +3,15 @@ package ng3.drivers.filecopy;
 import ng3.BackupDirectory;
 import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
+import ng3.conf.VersioningConfiguration;
 import ng3.db.DbClient;
 import ng3.drivers.VersioningDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import s4lab.FileTools;
 
 import java.io.File;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -118,25 +121,127 @@ public class FileCopyVersioningDriver implements VersioningDriver {
 
     VersionDef lastVersion = versions.get(orderedVersions.get(0));
     if (lastVersion.isDeleted()) {
-      // TODO: deleted-strategy
+      if (backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy() != null) {
+        versionDeletedFile(dir, backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy(), orderedVersions, versions);
+      }
     } else {
-      // TODO: old-strategy
+      if (backupDirectory.getConfiguration().getVersioning().getFileStrategy() != null) {
+        // TODO: old-strategy
+      }
     }
+  }
+
+  private interface Strategy {
+    List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions);
+  }
+
+  private class UnconditionalDeleteFileStrategy implements Strategy {
+    @Override
+    public List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
+      return orderedVersions;
+    }
+  }
+
+  private class DeleteFileAfterXStrategy implements Strategy {
+    private final int afterMinutes;
+
+    private DeleteFileAfterXStrategy(int afterMinutes) {
+      this.afterMinutes = afterMinutes;
+    }
+
+    @Override
+    public List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
+      VersionDef lastVersion = versions.get(orderedVersions.get(0));
+      if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(afterMinutes))) {
+        return orderedVersions;
+      }
+      return Collections.emptyList();
+    }
+  }
+
+  private void versionDeletedFile(File dir, VersioningConfiguration.DeletedFileStrategy strategy, List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
+    List<Integer> versionsToDelete = new ArrayList<>();
+    VersionDef lastVersion = versions.get(orderedVersions.get(0));
+
+    if (strategy.getStrategy() == VersioningConfiguration.DeletedFileStrategy.Strategy.DELETE_FILE) {
+      if (strategy.getAfterMinutes() == null) {
+        // ta bort alla versioner
+        versionsToDelete.addAll(orderedVersions);
+      } else {
+        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner
+        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
+          versionsToDelete.addAll(orderedVersions);
+        }
+      }
+    } else if (strategy.getStrategy() == VersioningConfiguration.DeletedFileStrategy.Strategy.DELETE_HISTORY) {
+      // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner fram TILL senaste levande (dvs, senaste levande + borttag ska vara kvar)
+      if (strategy.getAfterMinutes() != null && strategy.getAgeInMinutes() == null && strategy.getRetainVersions() == null) {
+        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
+          boolean foundLiving = false;
+          for (Integer version : orderedVersions) {
+            if (!foundLiving && !versions.get(version).isDeleted()) {
+              foundLiving = true;
+              continue;
+            }
+
+            if (foundLiving) {
+              versionsToDelete.add(version);
+            }
+          }
+        }
+      } else if (strategy.getAfterMinutes() != null && strategy.getAgeInMinutes() != null && strategy.getRetainVersions() == null) {
+        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner som är äldre än (age)
+        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
+          for (Integer version : orderedVersions) {
+            if (versions.get(version).lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAgeInMinutes()))) {
+              versionsToDelete.add(version);
+            }
+          }
+        }
+      } else if (strategy.getRetainVersions() != null && strategy.getAfterMinutes() == null && strategy.getAgeInMinutes() == null) {
+        // ta bort alla versioner som har högre index än (retain)
+        for (int i = strategy.getRetainVersions(); i < orderedVersions.size(); i++) {
+          versionsToDelete.add(orderedVersions.get(i));
+        }
+      } else if (strategy.getAfterMinutes() != null && strategy.getRetainVersions() != null && strategy.getAgeInMinutes() == null) {
+        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner som har högre index än (retain)
+        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
+          for (int i = strategy.getRetainVersions(); i < orderedVersions.size(); i++) {
+            versionsToDelete.add(orderedVersions.get(i));
+          }
+        }
+      } else {
+        throw new IllegalArgumentException("Unknown strategy");
+      }
+    } else {
+      throw new IllegalArgumentException("Unknown strategy");
+    }
+
+    System.out.println("ORDERED: " + orderedVersions);
+    System.out.println("DELETED: " + versionsToDelete);
   }
 
   private class VersionDef {
     private final Set<File> files = new HashSet<>();
     private boolean deleted;
+    private ZonedDateTime lastModified;
 
     private void addFile(File file) {
       files.add(file);
       if (file.getName().endsWith(FileCopyBackupDriver.DELETED_EXTENSION)) {
         deleted = true;
       }
+      if (versionPattern.matcher(file.getName()).matches()) {
+        lastModified = FileTools.lastModified(file);
+      }
     }
 
     public boolean isDeleted() {
       return deleted;
+    }
+
+    public ZonedDateTime getLastModified() {
+      return lastModified;
     }
   }
 }

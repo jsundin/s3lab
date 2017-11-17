@@ -5,8 +5,9 @@
       "store-as": "jsundin-tmp",
       "versioning": {
         "deleted": {
-          "strategy": "delete-file",
-          "after": "1w"
+          "strategy": "delete-history",
+          "retain-versions": 36,
+          "after": "1h"
         },
         "old-versions": {
           "strategy": "delete-history",
