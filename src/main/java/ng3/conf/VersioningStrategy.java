@@ -10,9 +10,16 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  */
 public class VersioningStrategy {
   private final Strategy strategy;
-  private final Integer deleteAfterMinutes;
-  private final Integer keepVersions;
+  private final Integer deleteAfterMinutes = 0;
+  private final Integer keepVersions = 0;
 
+  @JsonCreator
+  public VersioningStrategy(
+    @JsonProperty("strategy") Strategy strategy
+  ) {
+    this.strategy = strategy;
+  }
+/*
   @JsonCreator
   public VersioningStrategy(
       @JsonProperty("strategy") Strategy strategy,
@@ -46,6 +53,7 @@ public class VersioningStrategy {
         throw new IllegalArgumentException("Unknown strategory: '" + strategy + "'");
     }
   }
+*/
 
   public Strategy getStrategy() {
     return strategy;

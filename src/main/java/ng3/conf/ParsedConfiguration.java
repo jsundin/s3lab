@@ -13,9 +13,9 @@ class ParsedConfiguration {
   private List<FileRule> globalRules;
   private DatabaseConfiguration database;
   private int intervalInMinutes;
+  private Integer versioningIntervalInMinutes;
   private BackupDriver backupDriver;
   private Map<String, String> secrets;
-  private VersioningConfiguration versioning;
 
   public int getIntervalInMinutes() {
     return intervalInMinutes;
@@ -69,11 +69,13 @@ class ParsedConfiguration {
     this.secrets = secrets;
   }
 
-  public VersioningConfiguration getVersioning() {
-    return versioning;
+  public Integer getVersioningIntervalInMinutes() {
+    return versioningIntervalInMinutes;
   }
 
-  public void setVersioning(VersioningConfiguration versioning) {
-    this.versioning = versioning;
+  @JsonProperty("versioning-interval")
+  @JsonDeserialize(using = IntervalToMinutesDeserializer.class)
+  public void setVersioningIntervalInMinutes(Integer versioningIntervalInMinutes) {
+    this.versioningIntervalInMinutes = versioningIntervalInMinutes;
   }
 }

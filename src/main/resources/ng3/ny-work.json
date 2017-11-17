@@ -2,7 +2,15 @@
   "directories": [
     {
       "directory": "/home/johdin/tmp/backuplab",
-      "store-as": "jsundin-tmp"
+      "store-as": "jsundin-tmp",
+      "versioning": {
+        "deleted-files": {
+          "strategy": "keep"
+        },
+        "old-versions": {
+          "strategy": "keep"
+        }
+      }
     }
   ],
   "global-rules": [
@@ -30,17 +38,7 @@
     }
   ],
   "interval": "1w",
-  "versioning": {
-    "interval": "1m",
-    "deleted-files": {
-      "strategy": "delete-after",
-      "delete-after": "1w"
-    },
-    "old-versions": {
-      "strategy": "keep-versions",
-      "keep-versions": 7
-    }
-  },
+  "versioning-interval": "1m",
   "target": {
     "driver": "file-copy",
     "path": "/tmp/backups"

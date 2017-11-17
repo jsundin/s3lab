@@ -37,7 +37,7 @@ public class BackupAgent {
 
   public boolean run(boolean failOnBadDirectories, boolean forceBackupNow, boolean forceVersioningNow, boolean runOnce) {
     boolean runBackup = true;
-    boolean runVersioning = configuration.getVersioning() != null;
+    boolean runVersioning = configuration.getVersioningIntervalInMinutes() != null;
 
     final List<BackupDirectory> backupDirectories = Collections.unmodifiableList(findBackupDirectories());
     if (failOnBadDirectories) {
@@ -70,7 +70,7 @@ public class BackupAgent {
       scheduledTasks.add(scheduleTask(plan.getLastStarted(), configuration.getIntervalInMinutes(), forceBackupNow, runOnce, scheduler, countDownLatch, () -> runBackupJob(backupDirectories)));
     }
     if (runVersioning) {
-      scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioning().getIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob(backupDirectories)));
+      scheduledTasks.add(scheduleTask(plan.getLastVersioned(), configuration.getVersioningIntervalInMinutes(), forceVersioningNow, runOnce, scheduler, countDownLatch, () -> runVersioningJob(backupDirectories)));
     }
 
     while (true) {

@@ -60,21 +60,32 @@ public class ConfigurationParser {
       directoryConfigurations.add(new DirectoryConfiguration(
               directoryConfiguration.getDirectory(),
               fileRules,
-              directoryConfiguration.getStoreAs()
+              directoryConfiguration.getStoreAs(),
+              directoryConfiguration.getVersioning()
       ));
     }
 
-    if (parsedConf.getVersioning() != null && !(parsedConf.getBackupDriver() instanceof VersionedBackupDriver)) {
+    // sanity check; driver must support versioning if versioning has been set
+    if (parsedConf.getVersioningIntervalInMinutes() != null && !(parsedConf.getBackupDriver() instanceof VersionedBackupDriver)) {
       throw new IOException("Versioning configured, but backup driver '" + parsedConf.getBackupDriver().getInformalName() + "' does not support versioning");
+    }
+
+    // sanity check; directory versioning is not allowed if global versioning has not been set
+    if (parsedConf.getVersioningIntervalInMinutes() == null) {
+      for (DirectoryConfiguration directoryConfiguration : directoryConfigurations) {
+        if (directoryConfiguration.getVersioning() != null) {
+          throw new IOException("Versioning has not been configured, but directory '" + directoryConfiguration.getDirectory() + "' has versioning configuration set");
+        }
+      }
     }
 
     return new Configuration(
             directoryConfigurations,
             parsedConf.getDatabase(),
             parsedConf.getIntervalInMinutes(),
+            parsedConf.getVersioningIntervalInMinutes(),
             parsedConf.getBackupDriver(),
-            parseSecrets(parsedConf.getSecrets()),
-            parsedConf.getVersioning());
+            parseSecrets(parsedConf.getSecrets()));
   }
 
   private Map<String, char[]> parseSecrets(Map<String, String> secrets) throws IOException {
