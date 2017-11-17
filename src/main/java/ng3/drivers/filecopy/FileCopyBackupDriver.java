@@ -1,28 +1,20 @@
-package ng3.drivers;
+package ng3.drivers.filecopy;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.protobuf.ByteString;
 import ng3.BackupDirectory;
-import ng3.Settings;
 import ng3.agent.BackupReportWriter;
 import ng3.common.CryptoUtils;
 import ng3.common.SimpleThreadFactory;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
 import ng3.db.DbClient;
-import org.apache.commons.io.IOUtils;
+import ng3.drivers.AbstractBackupDriver;
+import ng3.drivers.VersionedBackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.DigestOutputStream;
-import s4lab.FileTools;
-import s4lab.agent.Metadata;
 
-import javax.crypto.CipherOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.security.Key;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -31,14 +23,13 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPOutputStream;
 
 public class FileCopyBackupDriver extends AbstractBackupDriver implements VersionedBackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   public static final String INFORMAL_NAME = "file-copy";
-  private final static String FILE_PREFIX = "$";
-  private final static String META_EXTENSION = ".meta";
-  private final static String DELETED_EXTENSION = ",DELETED";
+  final static String FILE_PREFIX = "$";
+  final static String META_EXTENSION = ".meta";
+  final static String DELETED_EXTENSION = ",DELETED";
   private final File path;
   private final int threads;
   private final boolean compress;
@@ -212,11 +203,11 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
 
       CopyFileTask copyFileTask;
       if (encryptionPassword == null) {
-        copyFileTask = new CopyFileTask(backupFile.file, target);
+        copyFileTask = new CopyFileTask(backupFile.file, target, compress);
       } else {
         byte[] salt = CryptoUtils.generateSalt();
         Key key = CryptoUtils.generateKey(encryptionPassword, salt);
-        copyFileTask = new CopyFileTask(backupFile.file, target, key, salt);
+        copyFileTask = new CopyFileTask(backupFile.file, target, compress, key, salt);
       }
 
       threadSemaphore.acquireUninterruptibly();
@@ -237,115 +228,6 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
           threadSemaphore.release();
         }
       });
-    }
-  }
-
-  private class CopyFileTask {
-    private final File src;
-    private final File target;
-    private final Key key;
-    private final byte[] salt;
-
-    public CopyFileTask(File src, File target) {
-      this.src = src;
-      this.target = target;
-      this.key = null;
-      this.salt = null;
-    }
-
-    private CopyFileTask(File src, File target, Key key, byte[] salt) {
-      this.src = src;
-      this.target = target;
-      this.key = key;
-      this.salt = salt;
-    }
-
-    private boolean execute() throws Exception {
-      return src.exists() ? copy() : delete();
-    }
-
-    private boolean copy() throws Exception {
-      if (!target.exists()) {
-        if (!target.mkdirs()) {
-          logger.error("Could not create directories for '{}' (target '{}')", src, target);
-          return false;
-        }
-      }
-
-      if (!target.isDirectory()) {
-        logger.error("Target '{}' is not a directory", target);
-        return false;
-      }
-
-      File targetFile = getVersionedFile();
-      OutputStream out = null;
-      DigestOutputStream digestOut = null;
-      CipherOutputStream cipherOut = null;
-      GZIPOutputStream gzOut = null;
-      byte[] iv = null;
-
-      try (FileInputStream in = new FileInputStream(src)) {
-        out = digestOut = new DigestOutputStream(new FileOutputStream(targetFile));
-
-        if (key != null && salt != null) {
-          iv = CryptoUtils.generateIV();
-          out = cipherOut = CryptoUtils.getEncryptionOutputStream(key, iv, out);
-        }
-
-        if (compress) {
-          out = gzOut = new GZIPOutputStream(out);
-        }
-
-        IOUtils.copy(in, out);
-      } finally {
-        IOUtils.closeQuietly(gzOut, cipherOut, digestOut);
-      }
-
-      Metadata.FileMeta.Builder metaBuilder = Metadata.FileMeta.newBuilder()
-          .setFormatVersion(1) // TODO: bort med nyckel!
-          .setEncrypted(key != null)
-          .setFileMD5(ByteString.copyFrom(digestOut.getDigest()));
-
-      if (key != null && salt != null) {
-        metaBuilder.setKeyIterations(Settings.KEY_ITERATIONS);
-        metaBuilder.setKeyLength(Settings.KEY_LENGTH);
-        metaBuilder.setKeyAlgorithm(Settings.KEY_ALGORITHM);
-        metaBuilder.setCryptoAlgorithm(Settings.CIPHER_TRANSFORMATION); // TODO: byt namn på proto-nyckel
-        metaBuilder.setSalt(ByteString.copyFrom(salt));
-        metaBuilder.setIv(ByteString.copyFrom(iv));
-      }
-      Metadata.FileMeta meta = metaBuilder.build();
-      File metaFile = FileTools.addExtension(targetFile, META_EXTENSION);
-      try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
-        meta.writeTo(metaOut);
-      }
-
-      return true;
-    }
-
-    private boolean delete() throws Exception {
-      if (!target.exists()) {
-        return true; // file never existed, we don't need to mark it as deleted
-      }
-
-      if (!target.isDirectory()) {
-        logger.error("Target '{}' is not a directory", target);
-      }
-
-      File targetFile = getVersionedFile();
-      try (FileOutputStream out = new FileOutputStream(FileTools.addExtension(targetFile, DELETED_EXTENSION))) {
-
-      }
-      return true;
-    }
-
-    private File getVersionedFile() {
-      int n = 1;
-      File f;
-      do {
-        f = new File(target, "" + n++);
-      } while (f.exists() || FileTools.addExtension(f, DELETED_EXTENSION).exists());
-      return f;
     }
   }
 }

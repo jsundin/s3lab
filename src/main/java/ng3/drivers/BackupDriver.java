@@ -6,6 +6,8 @@ import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
 import ng3.conf.Configuration;
 import ng3.db.DbClient;
+import ng3.drivers.archive.ArchiveBackupDriver;
+import ng3.drivers.filecopy.FileCopyBackupDriver;
 
 import java.util.List;
 

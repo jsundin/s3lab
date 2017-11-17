@@ -1,15 +1,15 @@
-package ng3.drivers;
+package ng3.drivers.archive;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
-import ng3.common.TarGzArchiver;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
 import ng3.conf.SizeToBytesDeserializer;
 import ng3.db.DbClient;
+import ng3.drivers.AbstractBackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

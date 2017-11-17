@@ -1,4 +1,4 @@
-package ng3.common;
+package ng3.drivers.archive;
 
 import com.google.protobuf.ByteString;
 import ng3.Settings;

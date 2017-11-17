@@ -54,7 +54,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     private final Semaphore sessionSemaphore = new Semaphore(0);
     private final Semaphore taskSemaphore = new Semaphore(0);
 
-    AbstractBackupSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
+    public AbstractBackupSession(DbClient dbClient, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
       this.dbClient = dbClient;
       this.report = report;
       this.backupDirectories = backupDirectories;
@@ -142,12 +142,12 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     }
   }
 
-  protected class BackupFile {
-    protected final UUID id;
-    protected final File file;
-    protected final boolean deleted;
-    protected final UUID directoryId;
-    protected final ZonedDateTime lastModified;
+  public class BackupFile {
+    public final UUID id;
+    public final File file;
+    public final boolean deleted;
+    public final UUID directoryId;
+    public final ZonedDateTime lastModified;
 
     private BackupFile(UUID id, File file, boolean deleted, UUID directoryId, ZonedDateTime lastModified) {
       this.id = id;
