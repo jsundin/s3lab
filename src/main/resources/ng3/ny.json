@@ -34,11 +34,13 @@
     "interval": "1m",
     "deleted-files": {
       "strategy": "delete-after",
-      "delete-after": "1w"
+      "delete-after": "1w",
+      "todo": "tolkning: omm senaste versionen av filen är borttagen - ta bort"
     },
     "old-versions": {
       "strategy": "keep-versions",
-      "keep-versions": 7
+      "keep-versions": 7,
+      "todo": "se till att inte delete-after nödvändigtvis tar bort sista versionen"
     }
   },
   "target": {

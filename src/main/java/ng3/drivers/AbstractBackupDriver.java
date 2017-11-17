@@ -22,7 +22,7 @@ abstract public class AbstractBackupDriver implements BackupDriver {
 
   @Override
   public final BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
-    dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
+    //dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
     dbClient.buildQuery("update file set upload_started=null where upload_finished is null")
         .executeUpdate();
     AbstractBackupSession session = openSession(dbClient, configuration, report, backupDirectories);

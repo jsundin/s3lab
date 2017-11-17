@@ -101,28 +101,47 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
 
   private void performFileVersioning(File fileDirectory) {
     // TODO: om filkatalogen är tom så kan vi ta bort den
-    File[] fileVersions = fileDirectory.listFiles();
-    if (fileVersions == null) {
+    File[] files = fileDirectory.listFiles();
+    if (files == null) {
       logger.warn("Could not access file-directory '{}'", fileDirectory);
       return;
     }
 
-    Set<Integer> uniqueVersions = new HashSet<>();
-    for (File fileVersion : fileVersions) {
-      Pattern pattern = Pattern.compile("^(?<version>[0-9]+).*");
-      Matcher m = pattern.matcher(fileVersion.getName());
+    if (files.length == 0) {
+      logger.warn("Unexpected empty file-directory '{}'", fileDirectory);
+      return;
+    }
+
+    Pattern versionPattern = Pattern.compile("^(?<version>[0-9]+).*");
+    Map<Integer, Set<String>> versionsAndFiles = new HashMap<>();
+    for (File file : files) {
+      String filename = file.getName();
+      Matcher m = versionPattern.matcher(filename);
       if (!m.matches()) {
-        logger.warn("No version information in file '{}'", fileVersion);
+        logger.warn("Could not parse version information from '{}'", file);
         continue;
       }
 
       int version = Integer.parseInt(m.group("version"));
-      uniqueVersions.add(version);
+      if (!versionsAndFiles.containsKey(version)) {
+        versionsAndFiles.put(version, new HashSet<>());
+      }
+      versionsAndFiles.get(version).add(filename);
     }
 
-    List<Integer> versions = new ArrayList<>(uniqueVersions);
+    List<Integer> versions = new ArrayList<>(versionsAndFiles.keySet());
+    if (versions.isEmpty()) {
+      logger.warn("Could not find any versions in file-directory '{}'", fileDirectory);
+      return;
+    }
     Collections.sort(versions);
-    System.out.println(fileDirectory + ": " + versions);
+    int lastVersion = versions.get(versions.size() - 1);
+    Set<String> last = versionsAndFiles.get(lastVersion);
+    if (last.contains(String.format("%d%s", lastVersion, DELETED_EXTENSION))) {
+      System.out.println("DELETED! " + last);
+    } else {
+      System.out.println("ALIVE!" + last);
+    }
   }
 
   public class BackupSession extends AbstractBackupDriver.AbstractBackupSession {
