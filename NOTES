@@ -1,0 +1,57 @@
+	DELETED:
+	- ta bort FIL:
+		delete-file()
+
+	- ta bort FIL 1w efter delete
+		delete-file(after: 1w)
+
+	- ta bort HISTORIK 1w efter delete (behåller alltså den senaste icke-deletade versionen)
+		delete-history(after: 1w)
+
+	- ta bort 3w gammal HISTORIK 1w efter delete
+		delete-history(after: 1w, age: 3w)
+
+	- ta bort allt utom de 7 senaste versionerna efter delete
+		delete-history(retain-versions: 7)
+
+	- ta bort allt utom de 7 senaste versionerna 1w efter delete
+		delete-history(after: 1w, retain-versions: 7)
+
+
+OLD-VERSIONS:
+	- ta bort historik äldre än 1w
+		delete-history(age: 1w)
+		
+	- ta bort historik äldre än 7 versioner
+		delete-history(retain-versions: 7)
+
+
+
+
+
+- om senaste versionen är borttagen,
+	- ta bort omedelbums
+		strategy: delete-file
+	- ta bort all historik 1w efter borttag
+		strategy: delete-file
+		delete-after: 1w
+	- ta bort all historik som är äldre än 1w
+		strategy: delete-history
+		max-age: 1w
+	- ta bort all historik utom senaste levande versionen (fattar automagiskt att retain-versions=2)
+		strategy: delete-history
+	- ta bort all historik som är äldre än 7 versioner
+		strategy: delete-history
+		retain-versions: 7
+
+- annars,
+	- ta bort all historik utom senaste som är äldre än 1w
+		delete-history
+		max-age: 1w
+	- ta bort all historik som är äldre än 7 versioner
+		delete-history
+		retain-versions: 7
+	- ta bort all historik
+		delete-history
+
+
