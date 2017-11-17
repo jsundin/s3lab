@@ -76,6 +76,13 @@ abstract public class AbstractBackupDriver implements BackupDriver {
     protected void finish() {
     }
 
+    protected final void uploadFinished(BackupFile backupFile) {
+      dbClient.buildQuery("update file set upload_finished=? where file_id=?")
+          .withParam().timestampValue(1, ZonedDateTime.now())
+          .withParam().uuidValue(2, backupFile.id)
+          .executeUpdate();
+    }
+
     @Override
     public final void run() {
       logger.info("Backup running for directories: {}", backupDirectories.stream().map(v -> v.getConfiguration().getDirectory().toString()).collect(Collectors.joining(", ", "'", "'")));

@@ -224,6 +224,7 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
         try {
           if (copyFileTask.execute()) {
             report.getTargetReportWriter().successfulFile();
+            uploadFinished(backupFile);
           } else {
             report.getTargetReportWriter().failedFile();
           }
