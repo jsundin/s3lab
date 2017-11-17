@@ -19,6 +19,7 @@ import java.util.List;
 public interface BackupDriver {
   BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
   String getInformalName();
+  VersioningDriver getVersioningDriver() throws UnsupportedOperationException;
 
   interface BackupSession {
     void endSession();

@@ -10,6 +10,7 @@ import ng3.conf.Configuration;
 import ng3.conf.SizeToBytesDeserializer;
 import ng3.db.DbClient;
 import ng3.drivers.AbstractBackupDriver;
+import ng3.drivers.VersioningDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,11 @@ public class ArchiveBackupDriver extends AbstractBackupDriver {
   @Override
   public String getInformalName() {
     return INFORMAL_NAME;
+  }
+
+  @Override
+  public VersioningDriver getVersioningDriver() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException("This driver does not support versioning");
   }
 
   private class ArchiveBackupSession extends AbstractBackupSession {

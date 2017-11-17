@@ -8,7 +8,6 @@ import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
 import ng3.drivers.BackupDriver;
-import ng3.drivers.VersionedBackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.TimeUtils;
@@ -121,10 +120,7 @@ public class BackupAgent {
     plan.setLastVersioned(ZonedDateTime.now());
     dbClient.saveBackupPlan(plan);
 
-    VersionedBackupDriver versionedDriver = (VersionedBackupDriver) configuration.getBackupDriver();
-    for (BackupDirectory backupDirectory : backupDirectories) {
-      versionedDriver.performVersioning(dbClient, configuration, backupDirectory);
-    }
+    configuration.getBackupDriver().getVersioningDriver().performVersioning(dbClient, configuration, backupDirectories);
   }
 
   private Runnable shutdownListener = () -> {

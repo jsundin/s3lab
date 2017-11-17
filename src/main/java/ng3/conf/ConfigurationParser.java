@@ -3,7 +3,6 @@ package ng3.conf;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import ng3.drivers.VersionedBackupDriver;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import s5lab.configuration.FileRule;
@@ -66,7 +65,11 @@ public class ConfigurationParser {
     }
 
     // sanity check; driver must support versioning if versioning has been set
-    if (parsedConf.getVersioningIntervalInMinutes() != null && !(parsedConf.getBackupDriver() instanceof VersionedBackupDriver)) {
+    try {
+      if (parsedConf.getVersioningIntervalInMinutes() != null) {
+        parsedConf.getBackupDriver().getVersioningDriver();
+      }
+    } catch (UnsupportedOperationException ignored) {
       throw new IOException("Versioning configured, but backup driver '" + parsedConf.getBackupDriver().getInformalName() + "' does not support versioning");
     }
 

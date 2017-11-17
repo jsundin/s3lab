@@ -32,7 +32,7 @@
   "interval": "1m",
   "versioning": {
     "interval": "1m",
-    "deleted-files": {
+    "deleted": {
       "strategy": "delete-after",
       "delete-after": "1w",
       "todo": "tolkning: omm senaste versionen av filen är borttagen - ta bort"

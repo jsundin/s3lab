@@ -10,21 +10,22 @@ import ng3.common.ValuePair;
 import ng3.conf.Configuration;
 import ng3.db.DbClient;
 import ng3.drivers.AbstractBackupDriver;
-import ng3.drivers.VersionedBackupDriver;
+import ng3.drivers.VersioningDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.security.Key;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-public class FileCopyBackupDriver extends AbstractBackupDriver implements VersionedBackupDriver {
+public class FileCopyBackupDriver extends AbstractBackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   public static final String INFORMAL_NAME = "file-copy";
   final static String FILE_PREFIX = "$";
@@ -59,80 +60,8 @@ public class FileCopyBackupDriver extends AbstractBackupDriver implements Versio
   }
 
   @Override
-  public void performVersioning(DbClient dbClient, Configuration configuration, BackupDirectory backupDirectory) {
-    File target;
-    if (backupDirectory.getConfiguration().getStoreAs() == null) {
-      target = new File(path, backupDirectory.getConfiguration().getDirectory().toString());
-    } else {
-      target = new File(path, backupDirectory.getConfiguration().getStoreAs());
-    }
-    performDirectoryVersioning(target);
-  }
-
-  private void performDirectoryVersioning(File directory) {
-    File[] files = directory.listFiles();
-    if (files == null) {
-      logger.warn("Could not access directory '{}'", directory);
-      return;
-    }
-
-    // TODO: om katalogen är tom så kan vi ta bort den
-    for (File file : files) {
-      if (file.isDirectory()) {
-        if (!file.getName().startsWith(FILE_PREFIX)) {
-          performDirectoryVersioning(file);
-        } else {
-          performFileVersioning(file);
-        }
-      } else {
-        logger.warn("Unexpected file '{}' - don't really know what to do with this -- ignored", file);
-      }
-    }
-  }
-
-  private void performFileVersioning(File fileDirectory) {
-    // TODO: om filkatalogen är tom så kan vi ta bort den
-    File[] files = fileDirectory.listFiles();
-    if (files == null) {
-      logger.warn("Could not access file-directory '{}'", fileDirectory);
-      return;
-    }
-
-    if (files.length == 0) {
-      logger.warn("Unexpected empty file-directory '{}'", fileDirectory);
-      return;
-    }
-
-    Pattern versionPattern = Pattern.compile("^(?<version>[0-9]+).*");
-    Map<Integer, Set<String>> versionsAndFiles = new HashMap<>();
-    for (File file : files) {
-      String filename = file.getName();
-      Matcher m = versionPattern.matcher(filename);
-      if (!m.matches()) {
-        logger.warn("Could not parse version information from '{}'", file);
-        continue;
-      }
-
-      int version = Integer.parseInt(m.group("version"));
-      if (!versionsAndFiles.containsKey(version)) {
-        versionsAndFiles.put(version, new HashSet<>());
-      }
-      versionsAndFiles.get(version).add(filename);
-    }
-
-    List<Integer> versions = new ArrayList<>(versionsAndFiles.keySet());
-    if (versions.isEmpty()) {
-      logger.warn("Could not find any versions in file-directory '{}'", fileDirectory);
-      return;
-    }
-    Collections.sort(versions);
-    int lastVersion = versions.get(versions.size() - 1);
-    Set<String> last = versionsAndFiles.get(lastVersion);
-    if (last.contains(String.format("%d%s", lastVersion, DELETED_EXTENSION))) {
-      System.out.println("DELETED! " + last);
-    } else {
-      System.out.println("ALIVE!" + last);
-    }
+  public VersioningDriver getVersioningDriver() throws UnsupportedOperationException {
+    return new FileCopyVersioningDriver(path, threads);
   }
 
   public class BackupSession extends AbstractBackupDriver.AbstractBackupSession {
