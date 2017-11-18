@@ -144,102 +144,20 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     Collections.sort(versions);
     Collections.reverse(versions);
 
-    System.out.println(versions);
+    List<Integer> versionsToDelete = null;
 
     if (versionMeta.get(versions.get(0)).getDeleted()) {
       if (backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy() != null) {
-        System.out.println(versionMeta);
+        versionsToDelete = backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy().performVersioning(versionMeta);
       }
     } else {
       if (backupDirectory.getConfiguration().getVersioning().getFileStrategy() != null) {
-
+        versionsToDelete = backupDirectory.getConfiguration().getVersioning().getFileStrategy().performVersioning(versionMeta);
       }
+    }
+
+    if (versionsToDelete != null) {
+      System.out.println(versionsToDelete);
     }
   }
-
-  /*private void versionDeletedFile(File dir, VersioningConfiguration.DeletedFileStrategy strategy, List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
-    List<Integer> versionsToDelete = new ArrayList<>();
-    VersionDef lastVersion = versions.get(orderedVersions.get(0));
-
-    if (strategy.getStrategy() == VersioningConfiguration.DeletedFileStrategy.Strategy.DELETE_FILE) {
-      if (strategy.getAfterMinutes() == null) {
-        // ta bort alla versioner
-        versionsToDelete.addAll(orderedVersions);
-      } else {
-        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner
-        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
-          versionsToDelete.addAll(orderedVersions);
-        }
-      }
-    } else if (strategy.getStrategy() == VersioningConfiguration.DeletedFileStrategy.Strategy.DELETE_HISTORY) {
-      // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner fram TILL senaste levande (dvs, senaste levande + borttag ska vara kvar)
-      if (strategy.getAfterMinutes() != null && strategy.getAgeInMinutes() == null && strategy.getRetainVersions() == null) {
-        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
-          boolean foundLiving = false;
-          for (Integer version : orderedVersions) {
-            if (!foundLiving && !versions.get(version).isDeleted()) {
-              foundLiving = true;
-              continue;
-            }
-
-            if (foundLiving) {
-              versionsToDelete.add(version);
-            }
-          }
-        }
-      } else if (strategy.getAfterMinutes() != null && strategy.getAgeInMinutes() != null && strategy.getRetainVersions() == null) {
-        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner som är äldre än (age)
-        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
-          for (Integer version : orderedVersions) {
-            if (versions.get(version).lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAgeInMinutes()))) {
-              versionsToDelete.add(version);
-            }
-          }
-        }
-      } else if (strategy.getRetainVersions() != null && strategy.getAfterMinutes() == null && strategy.getAgeInMinutes() == null) {
-        // ta bort alla versioner som har högre index än (retain)
-        for (int i = strategy.getRetainVersions(); i < orderedVersions.size(); i++) {
-          versionsToDelete.add(orderedVersions.get(i));
-        }
-      } else if (strategy.getAfterMinutes() != null && strategy.getRetainVersions() != null && strategy.getAgeInMinutes() == null) {
-        // om SENASTE versionen är äldre än (nu-after): ta bort alla versioner som har högre index än (retain)
-        if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(strategy.getAfterMinutes()))) {
-          for (int i = strategy.getRetainVersions(); i < orderedVersions.size(); i++) {
-            versionsToDelete.add(orderedVersions.get(i));
-          }
-        }
-      } else {
-        throw new IllegalArgumentException("Unknown strategy");
-      }
-    } else {
-      throw new IllegalArgumentException("Unknown strategy");
-    }
-
-    System.out.println("ORDERED: " + orderedVersions);
-    System.out.println("DELETED: " + versionsToDelete);
-  }
-
-  private class VersionDef {
-    private final Set<File> files = new HashSet<>();
-    private boolean deleted;
-    private ZonedDateTime lastModified;
-
-    private void addFile(File file) {
-      files.add(file);
-      if (file.getName().endsWith(FileCopyBackupDriver.DELETED_EXTENSION)) {
-        deleted = true;
-      }
-      if (versionPattern.matcher(file.getName()).matches()) {
-        lastModified = FileTools.lastModified(file);
-      }
-    }
-
-    public boolean isDeleted() {
-      return deleted;
-    }
-
-    public ZonedDateTime getLastModified() {
-      return lastModified;
-    }
-  }*/
 }

@@ -10,7 +10,8 @@
         },
         "old-versions": {
           "strategy": "delete-history",
-          "age": "1w"
+          "age": "1w",
+          "retain-versions": 2
         }
       }
     }
