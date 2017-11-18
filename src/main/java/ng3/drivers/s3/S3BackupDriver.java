@@ -1,5 +1,7 @@
 package ng3.drivers.s3;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
 import ng3.conf.Configuration;
@@ -11,6 +13,22 @@ import java.util.List;
 
 public class S3BackupDriver extends AbstractBackupDriver {
   public static final String INFORMAL_NAME = "s3";
+  private final String bucket;
+  private final int threads;
+  private final boolean compress;
+  private final String encryptionKey;
+
+  @JsonCreator
+  public S3BackupDriver(
+          @JsonProperty("bucket") String bucket,
+          @JsonProperty("threads") Integer threads,
+          @JsonProperty("compress") boolean compress,
+          @JsonProperty("encrypt-with") String encryptionKey) {
+    this.bucket = bucket;
+    this.threads = threads == null || threads < 2 ? 1 : threads;
+    this.compress = compress;
+    this.encryptionKey = encryptionKey;
+  }
 
   @Override
   protected AbstractBackupSession openSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {

@@ -30,7 +30,6 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
   public static final String INFORMAL_NAME = "file-copy";
   final static String FILE_PREFIX = "$";
   final static String META_EXTENSION = ".meta";
-  final static String DELETED_EXTENSION = ",DELETED";
   private final File path;
   private final int threads;
   private final boolean compress;
