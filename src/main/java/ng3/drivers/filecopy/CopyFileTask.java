@@ -5,6 +5,7 @@ import ng3.Metadata;
 import ng3.Settings;
 import ng3.common.CryptoUtils;
 import ng3.common.TimeUtilsNG;
+import ng3.drivers.AbstractBackupDriver;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.security.Key;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -29,18 +29,18 @@ import java.util.zip.GZIPOutputStream;
  */
 class CopyFileTask {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final File src;
+  private final AbstractBackupDriver.BackupFile backupFile;
   private final File target;
   private final boolean compress;
   private final Key key;
   private final byte[] salt;
 
-  CopyFileTask(File src, File target, boolean compress) {
-    this(src, target, compress, null, null);
+  CopyFileTask(AbstractBackupDriver.BackupFile backupFile, File target, boolean compress) {
+    this(backupFile, target, compress, null, null);
   }
 
-  CopyFileTask(File src, File target, boolean compress, Key key, byte[] salt) {
-    this.src = src;
+  CopyFileTask(AbstractBackupDriver.BackupFile backupFile, File target, boolean compress, Key key, byte[] salt) {
+    this.backupFile = backupFile;
     this.target = target;
     this.compress = compress;
     this.key = key;
@@ -48,13 +48,13 @@ class CopyFileTask {
   }
 
   boolean execute() throws Exception {
-    return src.exists() ? copy() : delete();
+    return backupFile.deleted ? delete() : copy();
   }
 
   private boolean copy() throws Exception {
     if (!target.exists()) {
       if (!target.mkdirs()) {
-        logger.error("Could not create directories for '{}' (target '{}')", src, target);
+        logger.error("Could not create directories for '{}' (target '{}')", backupFile.file, target);
         return false;
       }
     }
@@ -71,7 +71,7 @@ class CopyFileTask {
     GZIPOutputStream gzOut = null;
     byte[] iv = null;
 
-    try (FileInputStream in = new FileInputStream(src)) {
+    try (FileInputStream in = new FileInputStream(backupFile.file)) {
       out = digestOut = new DigestOutputStream(new FileOutputStream(targetFile));
 
       if (key != null && salt != null) {
@@ -89,11 +89,11 @@ class CopyFileTask {
     }
 
     Metadata.Meta.Builder metaBuilder = ng3.Metadata.Meta.newBuilder()
-            .setLastModified(TimeUtilsNG.at(FileTools.lastModified(src)).to(ZoneOffset.UTC).toISOString())
+            .setLastModified(TimeUtilsNG.at(backupFile.lastModified).to(ZoneOffset.UTC).toISOString())
             .setFileMD5(ByteString.copyFrom(digestOut.getDigest()));
 
     try {
-      Map<String, Object> attributes = Files.readAttributes(src.toPath(), "unix:uid,gid,mode");
+      Map<String, Object> attributes = Files.readAttributes(backupFile.file.toPath(), "unix:uid,gid,mode");
       metaBuilder.setUid((int) attributes.get("uid"))
               .setGid((int) attributes.get("gid"))
               .setMode((int) attributes.get("mode"));
@@ -133,7 +133,7 @@ class CopyFileTask {
 
     Metadata.Meta meta = Metadata.Meta.newBuilder()
             .setDeleted(true)
-            .setLastModified(TimeUtilsNG.at(ZonedDateTime.now()).to(ZoneOffset.UTC).toISOString())
+            .setLastModified(TimeUtilsNG.at(backupFile.lastModified).to(ZoneOffset.UTC).toISOString())
             .build();
 
     File metaFile = FileTools.addExtension(targetFile, FileCopyBackupDriver.META_EXTENSION);

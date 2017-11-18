@@ -132,11 +132,11 @@ public class FileCopyBackupDriver extends AbstractBackupDriver {
 
       CopyFileTask copyFileTask;
       if (encryptionPassword == null) {
-        copyFileTask = new CopyFileTask(backupFile.file, target, compress);
+        copyFileTask = new CopyFileTask(backupFile, target, compress);
       } else {
         byte[] salt = CryptoUtils.generateSalt();
         Key key = CryptoUtils.generateKey(encryptionPassword, salt);
-        copyFileTask = new CopyFileTask(backupFile.file, target, compress, key, salt);
+        copyFileTask = new CopyFileTask(backupFile, target, compress, key, salt);
       }
 
       threadSemaphore.acquireUninterruptibly();
