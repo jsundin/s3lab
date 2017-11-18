@@ -40,7 +40,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     for (BackupDirectory backupDirectory : backupDirectories) {
       executor.submit(() -> {
         try {
-          performVersioning(dbClient, configuration, backupDirectory);
+          performVersioning(backupDirectory);
         } catch (Throwable error) {
           logger.error("Unhandled error", error);
         }
@@ -57,7 +57,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     }
   }
 
-  private void performVersioning(DbClient dbClient, Configuration configuration, BackupDirectory backupDirectory) {
+  private void performVersioning(BackupDirectory backupDirectory) {
     File target;
     if (backupDirectory.getConfiguration().getStoreAs() == null) {
       target = new File(path, backupDirectory.getConfiguration().getDirectory().toString());
@@ -78,10 +78,21 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     for (File file : files) {
       if (file.isDirectory() && file.getName().startsWith(FileCopyBackupDriver.FILE_PREFIX)) {
         performFileVersioning(file, backupDirectory);
+        cleanup(file);
       } else if (file.isDirectory()) {
         performVersioning(file, backupDirectory);
+        cleanup(file);
       } else {
         logger.warn("Unexpected file '{}' - ignored", file);
+      }
+    }
+  }
+
+  private void cleanup(File dir) {
+    File[] files = dir.listFiles();
+    if (files != null && files.length == 0) {
+      if (!dir.delete()) {
+        logger.error("Could not remove empty directory '{}'", dir);
       }
     }
   }
@@ -94,7 +105,6 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     }
 
     if (files.length == 0) {
-      // TODO: vi kan ta bort den här katalogen
       logger.warn("No versions for '{}'", dir);
       return;
     }
@@ -157,7 +167,21 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     }
 
     if (versionsToDelete != null) {
-      System.out.println(versionsToDelete);
+      for (Integer version : versionsToDelete) {
+        File versionFile = new File(dir, String.format("%d", version));
+        File metaFile = new File(dir, String.format("%d%s", version, FileCopyBackupDriver.META_EXTENSION));
+        if (versionFile.exists()) {
+          if (!versionFile.delete()) {
+            logger.error("Could not delete version file '{}'", versionFile);
+            continue;
+          }
+        }
+        if (metaFile.exists()) {
+          if (!metaFile.delete()) {
+            logger.error("Could not delete version metafile '{}'", metaFile);
+          }
+        }
+      }
     }
   }
 }
