@@ -1,21 +1,22 @@
 package ng3.drivers.filecopy;
 
 import ng3.BackupDirectory;
+import ng3.Metadata;
 import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
-import ng3.conf.VersioningConfiguration;
 import ng3.db.DbClient;
 import ng3.drivers.VersioningDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.FileTools;
 
 import java.io.File;
-import java.time.ZonedDateTime;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -98,39 +99,65 @@ public class FileCopyVersioningDriver implements VersioningDriver {
       return;
     }
 
-    /*Map<Integer, VersionDef> versions = new HashMap<>();
+    Pattern versionFilePattern = Pattern.compile("^(?<version>[0-9]+)$");
+    Pattern metaFilePattern = Pattern.compile("^([0-9]+\\.meta)$");
+    Map<Integer, Metadata.Meta> versionMeta = new HashMap<>();
+
     for (File file : files) {
-      String filename = file.getName();
-      Matcher m = versionPattern.matcher(filename);
-      if (!m.matches()) {
-        logger.warn("Could not extract version information for file '{}'", file);
+      if (!file.isFile()) {
+        logger.warn("File '{}' is not a file in file-directory", file);
         return;
       }
 
-      int version = Integer.parseInt(m.group("version"));
-      if (!versions.containsKey(version)) {
-        versions.put(version, new VersionDef());
+      String filename = file.getName();
+
+      Matcher versionMatcher = versionFilePattern.matcher(filename);
+      if (!metaFilePattern.matcher(filename).matches() && !versionMatcher.matches()) {
+        logger.warn("Unknown file '{}' in file-directory", file);
+        return;
       }
-      versions.get(version).addFile(file);
+
+      if (!versionMatcher.matches()) {
+        continue;
+      }
+
+      int version = Integer.parseInt(versionMatcher.group("version"));
+      File metaFile = new File(file.getParent(), String.format("%d%s", version, FileCopyBackupDriver.META_EXTENSION));
+
+      Metadata.Meta meta;
+      try (FileInputStream metaIn = new FileInputStream(metaFile)) {
+        meta = Metadata.Meta.parseFrom(metaIn);
+      } catch (IOException e) {
+        logger.warn("Could not open metadata file '{}'", metaFile);
+        logger.warn("", e);
+        return;
+      }
+
+      if (versionMeta.containsKey(version)) {
+        logger.warn("Version '{}' exists more than once with file '{}'", version, file);
+        return;
+      }
+      versionMeta.put(version, meta);
     }
 
-    List<Integer> orderedVersions = new ArrayList<>(versions.keySet());
-    Collections.sort(orderedVersions);
-    Collections.reverse(orderedVersions);
+    ArrayList<Integer> versions = new ArrayList<>(versionMeta.keySet());
+    Collections.sort(versions);
+    Collections.reverse(versions);
 
-    VersionDef lastVersion = versions.get(orderedVersions.get(0));
-    if (lastVersion.isDeleted()) {
+    System.out.println(versions);
+
+    if (versionMeta.get(versions.get(0)).getDeleted()) {
       if (backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy() != null) {
-        versionDeletedFile(dir, backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy(), orderedVersions, versions);
+        System.out.println(versionMeta);
       }
     } else {
       if (backupDirectory.getConfiguration().getVersioning().getFileStrategy() != null) {
-        // TODO: old-strategy
+
       }
-    }*/
+    }
   }
 
-  private void versionDeletedFile(File dir, VersioningConfiguration.DeletedFileStrategy strategy, List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
+  /*private void versionDeletedFile(File dir, VersioningConfiguration.DeletedFileStrategy strategy, List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
     List<Integer> versionsToDelete = new ArrayList<>();
     VersionDef lastVersion = versions.get(orderedVersions.get(0));
 
@@ -214,5 +241,5 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     public ZonedDateTime getLastModified() {
       return lastModified;
     }
-  }
+  }*/
 }

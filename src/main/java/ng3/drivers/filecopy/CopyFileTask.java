@@ -19,6 +19,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.security.Key;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -132,6 +133,7 @@ class CopyFileTask {
 
     Metadata.Meta meta = Metadata.Meta.newBuilder()
             .setDeleted(true)
+            .setLastModified(TimeUtilsNG.at(ZonedDateTime.now()).to(ZoneOffset.UTC).toISOString())
             .build();
 
     File metaFile = FileTools.addExtension(targetFile, FileCopyBackupDriver.META_EXTENSION);
@@ -146,7 +148,7 @@ class CopyFileTask {
     File f;
     do {
       f = new File(target, "" + n++);
-    } while (f.exists() || FileTools.addExtension(f, FileCopyBackupDriver.DELETED_EXTENSION).exists());
+    } while (f.exists());
     return f;
   }
 }
