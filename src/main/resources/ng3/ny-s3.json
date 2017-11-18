@@ -1,0 +1,44 @@
+{
+  "directories": [
+    {
+      "directory": "/home/jsundin/tmp/backuplab",
+      "store-as": "jsundin-tmp"
+    }
+  ],
+  "global-rules": [
+    {
+      "rule": "exclude-hidden-files"
+    },
+    {
+      "rule": "exclude-symlinks"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/squash"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/AndroidStudioProjects"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/nuc"
+    },
+    {
+      "rule": "exclude-directory",
+      "directory": "/home/jsundin/tmp/old-stuff"
+    }
+  ],
+  "interval": "20w",
+  "target": {
+    "driver": "s3",
+    "bucket": "johans-bucket",
+    "threads": 3
+  },
+  "secrets": {
+    "archive-key": "password"
+  },
+  "database": {
+    "url": "jdbc:derby:s3_ng3;create=true"
+  }
+}
