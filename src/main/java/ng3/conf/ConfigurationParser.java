@@ -60,7 +60,8 @@ public class ConfigurationParser {
               directoryConfiguration.getDirectory(),
               fileRules,
               directoryConfiguration.getStoreAs(),
-              directoryConfiguration.getVersioning()
+              directoryConfiguration.getFileVersioning(),
+              directoryConfiguration.getDeletedFileVersioning()
       ));
     }
 
@@ -76,7 +77,7 @@ public class ConfigurationParser {
     // sanity check; directory versioning is not allowed if global versioning has not been set
     if (parsedConf.getVersioningIntervalInMinutes() == null) {
       for (DirectoryConfiguration directoryConfiguration : directoryConfigurations) {
-        if (directoryConfiguration.getVersioning() != null) {
+        if (directoryConfiguration.getFileVersioning() != null || directoryConfiguration.getDeletedFileVersioning() != null) {
           throw new IOException("Versioning has not been configured, but directory '" + directoryConfiguration.getDirectory() + "' has versioning configuration set");
         }
       }

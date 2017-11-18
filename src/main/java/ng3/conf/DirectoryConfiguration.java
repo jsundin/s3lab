@@ -12,18 +12,21 @@ public class DirectoryConfiguration {
   private final File directory;
   private final List<FileRule> rules;
   private final String storeAs;
-  private final VersioningConfiguration versioning;
+  private final FileVersioningConfiguration fileVersioning;
+  private final DeletedFileVersioningConfiguration deletedFileVersioning;
 
   @JsonCreator
   public DirectoryConfiguration(
           @JsonProperty("directory") File directory,
           @JsonProperty("rules") List<FileRule> rules,
           @JsonProperty("store-as") String storeAs,
-          @JsonProperty("versioning") VersioningConfiguration versioning) {
+          @JsonProperty("files") FileVersioningConfiguration fileVersioning,
+          @JsonProperty("deleted-files") DeletedFileVersioningConfiguration deletedFileVersioning) {
     this.directory = directory;
     this.rules = Collections.unmodifiableList(rules == null ? Collections.emptyList() : rules);
     this.storeAs = storeAs;
-    this.versioning = versioning;
+    this.fileVersioning = fileVersioning;
+    this.deletedFileVersioning = deletedFileVersioning;
   }
 
   public File getDirectory() {
@@ -38,7 +41,11 @@ public class DirectoryConfiguration {
     return storeAs;
   }
 
-  public VersioningConfiguration getVersioning() {
-    return versioning;
+  public FileVersioningConfiguration getFileVersioning() {
+    return fileVersioning;
+  }
+
+  public DeletedFileVersioningConfiguration getDeletedFileVersioning() {
+    return deletedFileVersioning;
   }
 }

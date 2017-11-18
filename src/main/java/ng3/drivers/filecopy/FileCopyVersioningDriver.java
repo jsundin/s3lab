@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
  */
 public class FileCopyVersioningDriver implements VersioningDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final Pattern versionPattern = Pattern.compile("^(?<version>[0-9]+).*");
   private final File path;
   private final int threads;
 
@@ -157,12 +156,12 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     List<Integer> versionsToDelete = null;
 
     if (versionMeta.get(versions.get(0)).getDeleted()) {
-      if (backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy() != null) {
-        versionsToDelete = backupDirectory.getConfiguration().getVersioning().getDeletedFileStrategy().performVersioning(versionMeta);
+      if (backupDirectory.getConfiguration().getDeletedFileVersioning() != null) {
+        versionsToDelete = backupDirectory.getConfiguration().getDeletedFileVersioning().performVersioning(versionMeta);
       }
     } else {
-      if (backupDirectory.getConfiguration().getVersioning().getFileStrategy() != null) {
-        versionsToDelete = backupDirectory.getConfiguration().getVersioning().getFileStrategy().performVersioning(versionMeta);
+      if (backupDirectory.getConfiguration().getFileVersioning() != null) {
+        versionsToDelete = backupDirectory.getConfiguration().getFileVersioning().performVersioning(versionMeta);
       }
     }
 
