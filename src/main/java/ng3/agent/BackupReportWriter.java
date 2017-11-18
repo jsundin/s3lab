@@ -1,6 +1,6 @@
 package ng3.agent;
 
-import s4lab.TimeUtils;
+import ng3.common.TimeUtilsNG;
 
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -55,7 +55,7 @@ public class BackupReportWriter implements BackupReport {
             .append("\n")
             .append("finishedAt: ").append(finishedAt)
             .append("\n")
-            .append("Execution time: ").append(TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)));
+            .append("Execution time: ").append(TimeUtilsNG.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)));
     sb.append("\n");
     sb.append("Errors:\n");
     for (String error : errors) {
@@ -119,7 +119,7 @@ public class BackupReportWriter implements BackupReport {
 
     @Override
     public String toString() {
-      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", found=" + foundFiles + ", rejected=" + rejectedFiles + ", acceptedFiles=" + acceptedFiles + ", acceptedDirs=" + acceptedDirectories + ", newFiles=" + newFiles + ", updatedFiles=" + updatedFiles + ", deletedFiles=" + deletedFiles;
+      return "time=" + TimeUtilsNG.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", found=" + foundFiles + ", rejected=" + rejectedFiles + ", acceptedFiles=" + acceptedFiles + ", acceptedDirs=" + acceptedDirectories + ", newFiles=" + newFiles + ", updatedFiles=" + updatedFiles + ", deletedFiles=" + deletedFiles;
     }
   }
 
@@ -156,7 +156,7 @@ public class BackupReportWriter implements BackupReport {
 
     @Override
     public String toString() {
-      return "time=" + TimeUtils.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", processedFiles=" + processedFiles + ", successfulFiles=" + successfulFiles + ", failedFiles=" + failedFiles;
+      return "time=" + TimeUtilsNG.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)) + ", processedFiles=" + processedFiles + ", successfulFiles=" + successfulFiles + ", failedFiles=" + failedFiles;
     }
   }
 }

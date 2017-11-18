@@ -22,7 +22,7 @@ create table file (
     last_modified timestamp,
     upload_started timestamp,
     upload_finished timestamp,
-    deleted boolean,
+    deleted boolean default false,
 
     primary key (file_id),
     foreign key (directory_id) references directory (directory_id)

@@ -2,7 +2,17 @@
   "directories": [
     {
       "directory": "/home/jsundin/tmp/backuplab",
-      "store-as": "jsundin-tmp"
+      "store-as": "jsundin-tmp",
+      "versioning": {
+        "deleted": {
+          "strategy": "delete-file",
+          "after": "1y"
+        },
+        "old-versions": {
+          "strategy": "delete-history",
+          "age": "1w"
+        }
+      }
     }
   ],
   "global-rules": [
@@ -29,25 +39,12 @@
       "directory": "/home/jsundin/tmp/old-stuff"
     }
   ],
-  "interval": "1m",
-  "versioning": {
-    "interval": "1m",
-    "deleted": {
-      "strategy": "delete-after",
-      "delete-after": "1w",
-      "todo": "tolkning: omm senaste versionen av filen är borttagen - ta bort"
-    },
-    "old-versions": {
-      "strategy": "keep-versions",
-      "keep-versions": 7,
-      "todo": "se till att inte delete-after nödvändigtvis tar bort sista versionen"
-    }
-  },
+  "interval": "20w",
+  "versioning-interval": "1m",
   "target": {
-    "driver": "archive",
-    "archive-prefix": "/tmp/backup-",
-    "max-files": 2000,
-    "max-size": "2g"
+    "driver": "file-copy",
+    "path": "/tmp/backups",
+    "threads": 3
   },
   "secrets": {
     "archive-key": "password"

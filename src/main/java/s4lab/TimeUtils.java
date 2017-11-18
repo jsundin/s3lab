@@ -2,12 +2,11 @@ package s4lab;
 
 import java.nio.file.attribute.FileTime;
 import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
+@Deprecated
 public class TimeUtils {
   private ZonedDateTime zdt;
 
@@ -101,6 +100,31 @@ public class TimeUtils {
   public Date toDate(ZoneId zoneId) {
     to(zoneId);
     return toDate();
+  }
+
+  public String toISOString() {
+    return DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").format(zdt);
+  }
+
+  public ZonedDateTime fromISOString(String value) {
+    return null;
+  }
+
+  public static void main(String[] args) {
+    ZonedDateTime now = TimeUtils.at(ZonedDateTime.now()).toZonedDateTime();
+    System.out.println(now);
+
+    ZonedDateTime nowUTC = TimeUtils.at(now).toZonedDateTime(ZoneOffset.UTC);
+    System.out.println(nowUTC);
+
+    Date dateUTC = TimeUtils.at(now).toDate(ZoneOffset.UTC);
+    System.out.println(dateUTC);
+
+    String iso = TimeUtils.at(nowUTC).toISOString();
+    System.out.println(iso);
+
+    //String iso = TimeUtils.at(ZonedDateTime.now()).to(ZoneOffset.UTC).toISOString();
+    //System.out.println(iso);
   }
 
   private TimeUtils to(ZoneId zoneOffset) {

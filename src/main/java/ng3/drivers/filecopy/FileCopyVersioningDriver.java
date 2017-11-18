@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -99,7 +98,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
       return;
     }
 
-    Map<Integer, VersionDef> versions = new HashMap<>();
+    /*Map<Integer, VersionDef> versions = new HashMap<>();
     for (File file : files) {
       String filename = file.getName();
       Matcher m = versionPattern.matcher(filename);
@@ -128,35 +127,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
       if (backupDirectory.getConfiguration().getVersioning().getFileStrategy() != null) {
         // TODO: old-strategy
       }
-    }
-  }
-
-  private interface Strategy {
-    List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions);
-  }
-
-  private class UnconditionalDeleteFileStrategy implements Strategy {
-    @Override
-    public List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
-      return orderedVersions;
-    }
-  }
-
-  private class DeleteFileAfterXStrategy implements Strategy {
-    private final int afterMinutes;
-
-    private DeleteFileAfterXStrategy(int afterMinutes) {
-      this.afterMinutes = afterMinutes;
-    }
-
-    @Override
-    public List<Integer> apply(List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {
-      VersionDef lastVersion = versions.get(orderedVersions.get(0));
-      if (lastVersion.lastModified.isBefore(ZonedDateTime.now().minusMinutes(afterMinutes))) {
-        return orderedVersions;
-      }
-      return Collections.emptyList();
-    }
+    }*/
   }
 
   private void versionDeletedFile(File dir, VersioningConfiguration.DeletedFileStrategy strategy, List<Integer> orderedVersions, Map<Integer, VersionDef> versions) {

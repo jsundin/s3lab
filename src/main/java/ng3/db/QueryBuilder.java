@@ -1,8 +1,8 @@
 package ng3.db;
 
+import ng3.common.TimeUtilsNG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.TimeUtils;
 
 import java.io.File;
 import java.sql.*;
@@ -163,7 +163,7 @@ public class QueryBuilder {
     }
 
     public QueryBuilder timestampValue(int index, ZonedDateTime value) {
-      Timestamp ts = value == null ? null : TimeUtils.at(value).toTimestamp(ZoneOffset.UTC);
+      Timestamp ts = value == null ? null : TimeUtilsNG.at(value).to(ZoneOffset.UTC).toTimestamp();
       try {
         preparedStatement.setTimestamp(index, ts);
         return QueryBuilder.this;

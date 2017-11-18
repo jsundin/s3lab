@@ -1,21 +1,25 @@
 package ng3.drivers.filecopy;
 
 import com.google.protobuf.ByteString;
+import ng3.Metadata;
 import ng3.Settings;
 import ng3.common.CryptoUtils;
+import ng3.common.TimeUtilsNG;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.DigestOutputStream;
 import s4lab.FileTools;
-import s4lab.agent.Metadata;
 
 import javax.crypto.CipherOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.security.Key;
+import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -83,20 +87,28 @@ class CopyFileTask {
       IOUtils.closeQuietly(gzOut, cipherOut, digestOut);
     }
 
-    Metadata.FileMeta.Builder metaBuilder = Metadata.FileMeta.newBuilder()
-        .setFormatVersion(1) // TODO: bort med nyckel!
-        .setEncrypted(key != null)
-        .setFileMD5(ByteString.copyFrom(digestOut.getDigest()));
+    Metadata.Meta.Builder metaBuilder = ng3.Metadata.Meta.newBuilder()
+            .setLastModified(TimeUtilsNG.at(FileTools.lastModified(src)).to(ZoneOffset.UTC).toISOString())
+            .setFileMD5(ByteString.copyFrom(digestOut.getDigest()));
+
+    try {
+      Map<String, Object> attributes = Files.readAttributes(src.toPath(), "unix:uid,gid,mode");
+      metaBuilder.setUid((int) attributes.get("uid"))
+              .setGid((int) attributes.get("gid"))
+              .setMode((int) attributes.get("mode"));
+    } catch (IllegalArgumentException ignored) {}
 
     if (key != null && salt != null) {
-      metaBuilder.setKeyIterations(Settings.KEY_ITERATIONS);
-      metaBuilder.setKeyLength(Settings.KEY_LENGTH);
-      metaBuilder.setKeyAlgorithm(Settings.KEY_ALGORITHM);
-      metaBuilder.setCryptoAlgorithm(Settings.CIPHER_TRANSFORMATION); // TODO: byt namn på proto-nyckel
-      metaBuilder.setSalt(ByteString.copyFrom(salt));
-      metaBuilder.setIv(ByteString.copyFrom(iv));
+      metaBuilder.setEncrypted(true)
+              .setKeyAlgorithm(Settings.KEY_ALGORITHM)
+              .setKeyIterations(Settings.KEY_ITERATIONS)
+              .setKeyLength(Settings.KEY_LENGTH)
+              .setCipherTransformation(Settings.CIPHER_TRANSFORMATION)
+              .setIv(ByteString.copyFrom(iv))
+              .setSalt(ByteString.copyFrom(salt));
     }
-    Metadata.FileMeta meta = metaBuilder.build();
+
+    ng3.Metadata.Meta meta = metaBuilder.build();
     File metaFile = FileTools.addExtension(targetFile, FileCopyBackupDriver.META_EXTENSION);
     try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
       meta.writeTo(metaOut);
@@ -115,7 +127,16 @@ class CopyFileTask {
     }
 
     File targetFile = getVersionedFile();
-    try (FileOutputStream ignored = new FileOutputStream(FileTools.addExtension(targetFile, FileCopyBackupDriver.DELETED_EXTENSION))) {
+    try (FileOutputStream ignored = new FileOutputStream(targetFile)) {
+    }
+
+    Metadata.Meta meta = Metadata.Meta.newBuilder()
+            .setDeleted(true)
+            .build();
+
+    File metaFile = FileTools.addExtension(targetFile, FileCopyBackupDriver.META_EXTENSION);
+    try (FileOutputStream metaOut = new FileOutputStream(metaFile)) {
+      meta.writeTo(metaOut);
     }
     return true;
   }

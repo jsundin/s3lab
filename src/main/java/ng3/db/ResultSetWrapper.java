@@ -1,6 +1,6 @@
 package ng3.db;
 
-import s4lab.TimeUtils;
+import ng3.common.TimeUtilsNG;
 
 import java.io.File;
 import java.sql.ResultSet;
@@ -36,7 +36,7 @@ public class ResultSetWrapper {
 
   public ZonedDateTime getTimestamp(int columnIndex) throws SQLException {
     Timestamp ts = resultSet.getTimestamp(columnIndex);
-    return ts == null ? null : TimeUtils.at(ts, ZoneOffset.UTC).toZonedDateTime(ZoneId.systemDefault());
+    return ts == null ? null : TimeUtilsNG.at(ts, ZoneOffset.UTC).to(ZoneId.systemDefault()).toZonedDateTime();
   }
 
   public File getFile(int columnIndex) throws SQLException {
@@ -63,7 +63,7 @@ public class ResultSetWrapper {
 
   public ZonedDateTime getTimestamp(String columnLabel) throws SQLException {
     Timestamp ts = resultSet.getTimestamp(columnLabel);
-    return ts == null ? null : TimeUtils.at(ts, ZoneOffset.UTC).toZonedDateTime(ZoneId.systemDefault());
+    return ts == null ? null : TimeUtilsNG.at(ts, ZoneOffset.UTC).to(ZoneId.systemDefault()).toZonedDateTime();
   }
 
   public File getFile(String columnLabel) throws SQLException {

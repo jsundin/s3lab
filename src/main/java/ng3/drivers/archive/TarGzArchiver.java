@@ -3,6 +3,7 @@ package ng3.drivers.archive;
 import com.google.protobuf.ByteString;
 import ng3.Settings;
 import ng3.common.CryptoUtils;
+import ng3.common.TimeUtilsNG;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.io.IOUtils;
@@ -10,8 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.DigestOutputStream;
 import s4lab.FileTools;
-import s4lab.TimeUtils;
-import s4lab.agent.Metadata;
 import s4lab.agent.SecurityException;
 
 import javax.crypto.CipherOutputStream;
@@ -42,7 +41,7 @@ public class TarGzArchiver {
   private long bytesInArchive;
   private int archiveIndex = 1;
   private final String timestamp;
-  private Metadata.FileMeta.Builder metaBuilder;
+  private ng3.Metadata.Meta.Builder metaBuilder;
   private File targetFile;
 
   public TarGzArchiver(String archivePrefix, boolean compress, char[] password, Integer maxFilesInArchive, Long maxBytesInArchive) {
@@ -62,7 +61,7 @@ public class TarGzArchiver {
     TarArchiveEntry entry = getArchiveEntry(file, name);
     entry.setUserName(DELETE_MARKER);
     entry.setSize(0);
-    entry.setModTime(TimeUtils.at(deletionTime).toDate());
+    entry.setModTime(TimeUtilsNG.at(deletionTime).toDate());
     tarOutputStream.putArchiveEntry(entry);
     tarOutputStream.closeArchiveEntry();
     filesInArchive++;
@@ -105,9 +104,8 @@ public class TarGzArchiver {
     }
 
     if (outputStream == null) {
-      metaBuilder = Metadata.FileMeta.newBuilder()
-              .setEncrypted(password != null)
-              .setFormatVersion(1); // TODO: bort med version
+      metaBuilder = ng3.Metadata.Meta.newBuilder()
+              .setEncrypted(password != null);
 
       targetFile = buildTargetFile();
       outputStream = digestOutputStream = new DigestOutputStream(new FileOutputStream(targetFile));
@@ -117,12 +115,12 @@ public class TarGzArchiver {
         Key key = CryptoUtils.generateKey(password, salt);
         outputStream = cipherOutputStream = CryptoUtils.getEncryptionOutputStream(key, iv, outputStream);
 
-        metaBuilder.setKeyIterations(Settings.KEY_ITERATIONS);
-        metaBuilder.setKeyLength(Settings.KEY_LENGTH);
-        metaBuilder.setKeyAlgorithm(Settings.KEY_ALGORITHM);
-        metaBuilder.setCryptoAlgorithm(Settings.CIPHER_TRANSFORMATION); // TODO: byt namn på proto-nyckel
-        metaBuilder.setSalt(ByteString.copyFrom(salt));
-        metaBuilder.setIv(ByteString.copyFrom(iv));
+        metaBuilder.setKeyAlgorithm(Settings.KEY_ALGORITHM)
+                .setKeyIterations(Settings.KEY_ITERATIONS)
+                .setKeyLength(Settings.KEY_LENGTH)
+                .setCipherTransformation(Settings.CIPHER_TRANSFORMATION)
+                .setIv(ByteString.copyFrom(iv))
+                .setSalt(ByteString.copyFrom(salt));
       }
       if (compress) {
         outputStream = gzipOutputStream = new GZIPOutputStream(outputStream);
@@ -139,7 +137,7 @@ public class TarGzArchiver {
       IOUtils.closeQuietly(digestOutputStream);
 
       metaBuilder.setFileMD5(ByteString.copyFrom(digestOutputStream.getDigest()));
-      Metadata.FileMeta meta = metaBuilder.build();
+      ng3.Metadata.Meta meta = metaBuilder.build();
       try (FileOutputStream fos = new FileOutputStream(FileTools.addExtension(targetFile, ".meta"))) {
         meta.writeTo(fos);
       } finally {

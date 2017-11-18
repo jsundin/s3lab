@@ -4,13 +4,13 @@ import ng3.BackupDirectory;
 import ng3.BackupPlan;
 import ng3.common.ShutdownSynchronizer;
 import ng3.common.SimpleThreadFactory;
+import ng3.common.TimeUtilsNG;
 import ng3.conf.Configuration;
 import ng3.conf.DirectoryConfiguration;
 import ng3.db.DbClient;
 import ng3.drivers.BackupDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import s4lab.TimeUtils;
 
 import java.io.File;
 import java.time.ZonedDateTime;
@@ -93,7 +93,7 @@ public class BackupAgent {
         Thread.interrupted();
       }
     }
-    logger.info("BackupAgent shut down after {}", TimeUtils.formatMillis(System.currentTimeMillis() - t0));
+    logger.info("BackupAgent shut down after {}", TimeUtilsNG.formatMillis(System.currentTimeMillis() - t0));
     return true;
   }
 
@@ -222,7 +222,7 @@ public class BackupAgent {
   }
 
   private String debugTimeSinceLast(ZonedDateTime lastExecution) {
-    return lastExecution == null ? "(never started)" : TimeUtils.formatMillis(ChronoUnit.MILLIS.between(lastExecution, ZonedDateTime.now()));
+    return lastExecution == null ? "(never started)" : TimeUtilsNG.formatMillis(ChronoUnit.MILLIS.between(lastExecution, ZonedDateTime.now()));
   }
 
   private class ConfiguredDirectory {

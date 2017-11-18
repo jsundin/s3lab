@@ -1,0 +1,22 @@
+syntax = "proto3";
+package ng3;
+import "google/protobuf/timestamp.proto";
+
+option java_package = "ng3";
+option java_outer_classname = "Metadata";
+
+message Meta {
+    string lastModified = 1;
+    bool encrypted = 2;
+    string keyAlgorithm = 3;
+    int32 keyIterations = 4;
+    int32 keyLength = 5;
+    string cipherTransformation = 6;
+    bytes salt = 7;
+    bytes iv = 8;
+    bytes fileMD5 = 9;
+    int32 uid = 10;
+    int32 gid = 11;
+    int32 mode = 12;
+    bool deleted = 13;
+}
