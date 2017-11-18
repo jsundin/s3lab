@@ -5,11 +5,12 @@ import ng3.common.TimeUtilsNG;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BackupReportWriter implements BackupReport {
-  private List<String> warnings = new ArrayList<>();
-  private List<String> errors = new ArrayList<>();
+  private List<String> warnings = Collections.synchronizedList(new ArrayList<>());
+  private List<String> errors = Collections.synchronizedList(new ArrayList<>());
   private ZonedDateTime startedAt;
   private ZonedDateTime finishedAt;
   private final FileScannerReportWriter fileScannerReport = new FileScannerReportWriter();
@@ -22,6 +23,26 @@ public class BackupReportWriter implements BackupReport {
   @Override
   public TargetReport getTargetReport() {
     return targetReport;
+  }
+
+  @Override
+  public List<String> getErrors() {
+    return Collections.unmodifiableList(errors);
+  }
+
+  @Override
+  public List<String> getWarnings() {
+    return Collections.unmodifiableList(warnings);
+  }
+
+  @Override
+  public ZonedDateTime getStartedAt() {
+    return startedAt;
+  }
+
+  @Override
+  public ZonedDateTime getFinishedAt() {
+    return finishedAt;
   }
 
   public FileScannerReportWriter getFileScannerReportWriter() {
@@ -89,31 +110,31 @@ public class BackupReportWriter implements BackupReport {
       this.finishedAt = finishedAt;
     }
 
-    public void newFile() {
+    public synchronized void newFile() {
       newFiles++;
     }
 
-    public void updatedFile() {
+    public synchronized void updatedFile() {
       updatedFiles++;
     }
 
-    public void foundFile() {
+    public synchronized void foundFile() {
       foundFiles++;
     }
 
-    public void rejectedFile() {
+    public synchronized void rejectedFile() {
       rejectedFiles++;
     }
 
-    public void acceptedFile() {
+    public synchronized void acceptedFile() {
       acceptedFiles++;
     }
 
-    public void acceptedDirectory() {
+    public synchronized void acceptedDirectory() {
       acceptedDirectories++;
     }
 
-    public void deletedFile() {
+    public synchronized void deletedFile() {
       deletedFiles++;
     }
 
@@ -138,19 +159,15 @@ public class BackupReportWriter implements BackupReport {
       this.finishedAt = finishedAt;
     }
 
-    public void processedFile() {
+    public synchronized void processedFile() {
       processedFiles++;
     }
 
-    public void processedFiles(int n) {
-      processedFiles += n;
-    }
-
-    public void successfulFile() {
+    public synchronized void successfulFile() {
       successfulFiles++;
     }
 
-    public void failedFile() {
+    public synchronized void failedFile() {
       failedFiles++;
     }
 

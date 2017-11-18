@@ -120,7 +120,12 @@ public class BackupAgent {
     plan.setLastVersioned(ZonedDateTime.now());
     dbClient.saveBackupPlan(plan);
 
-    configuration.getBackupDriver().getVersioningDriver().performVersioning(dbClient, configuration, backupDirectories);
+    VersioningReportWriter report = new VersioningReportWriter();
+    report.setStartedAt(ZonedDateTime.now());
+
+    configuration.getBackupDriver().getVersioningDriver().performVersioning(dbClient, configuration, report, backupDirectories);
+
+    report.setFinishedAt(ZonedDateTime.now());
   }
 
   private Runnable shutdownListener = () -> {

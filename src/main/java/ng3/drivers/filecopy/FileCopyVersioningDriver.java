@@ -2,6 +2,7 @@ package ng3.drivers.filecopy;
 
 import ng3.BackupDirectory;
 import ng3.Metadata;
+import ng3.agent.VersioningReportWriter;
 import ng3.common.SimpleThreadFactory;
 import ng3.conf.Configuration;
 import ng3.db.DbClient;
@@ -34,12 +35,19 @@ public class FileCopyVersioningDriver implements VersioningDriver {
   }
 
   @Override
-  public void performVersioning(DbClient dbClient, Configuration configuration, List<BackupDirectory> backupDirectories) {
+  public void performVersioning(DbClient dbClient, Configuration configuration, VersioningReportWriter report, List<BackupDirectory> backupDirectories) {
     ExecutorService executor = Executors.newFixedThreadPool(threads, new SimpleThreadFactory("FileCopyVersioning"));
     for (BackupDirectory backupDirectory : backupDirectories) {
       executor.submit(() -> {
         try {
-          performVersioning(backupDirectory);
+          File target;
+          if (backupDirectory.getConfiguration().getStoreAs() == null) {
+            target = new File(path, backupDirectory.getConfiguration().getDirectory().toString());
+          } else {
+            target = new File(path, backupDirectory.getConfiguration().getStoreAs());
+          }
+
+          performVersioning(target, backupDirectory, report);
         } catch (Throwable error) {
           logger.error("Unhandled error", error);
         }
@@ -56,18 +64,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
     }
   }
 
-  private void performVersioning(BackupDirectory backupDirectory) {
-    File target;
-    if (backupDirectory.getConfiguration().getStoreAs() == null) {
-      target = new File(path, backupDirectory.getConfiguration().getDirectory().toString());
-    } else {
-      target = new File(path, backupDirectory.getConfiguration().getStoreAs());
-    }
-
-    performVersioning(target, backupDirectory);
-  }
-
-  private void performVersioning(File directory, BackupDirectory backupDirectory) {
+  private void performVersioning(File directory, BackupDirectory backupDirectory, VersioningReportWriter report) {
     File[] files = directory.listFiles();
     if (files == null) {
       logger.warn("Could not access directory '{}'", directory);
@@ -76,35 +73,39 @@ public class FileCopyVersioningDriver implements VersioningDriver {
 
     for (File file : files) {
       if (file.isDirectory() && file.getName().startsWith(FileCopyBackupDriver.FILE_PREFIX)) {
-        performFileVersioning(file, backupDirectory);
-        cleanup(file);
+        performFileVersioning(file, backupDirectory, report);
+        cleanup(file, report);
       } else if (file.isDirectory()) {
-        performVersioning(file, backupDirectory);
-        cleanup(file);
+        performVersioning(file, backupDirectory, report);
+        cleanup(file, report);
       } else {
+        report.addWarning("Unexpected file '{}' - ignored", file);
         logger.warn("Unexpected file '{}' - ignored", file);
       }
     }
   }
 
-  private void cleanup(File dir) {
+  private void cleanup(File dir, VersioningReportWriter report) {
     File[] files = dir.listFiles();
     if (files != null && files.length == 0) {
       if (!dir.delete()) {
-        logger.error("Could not remove empty directory '{}'", dir);
+        report.addWarning("Could not remove empty directory '{}'", dir);
+        logger.warn("Could not remove empty directory '{}'", dir);
+      } else {
+        report.removedEmptyDirectory();
       }
     }
   }
 
-  private void performFileVersioning(File dir, BackupDirectory backupDirectory) {
+  private void performFileVersioning(File dir, BackupDirectory backupDirectory, VersioningReportWriter report) {
     File[] files = dir.listFiles();
     if (files == null) {
-      logger.warn("Could not access file versions for '{}'", dir);
+      report.addWarning("Could not access file versions in directory '{}'", dir);
+      logger.warn("Could not access file versions in directory '{}'", dir);
       return;
     }
 
     if (files.length == 0) {
-      logger.warn("No versions for '{}'", dir);
       return;
     }
 
@@ -114,6 +115,7 @@ public class FileCopyVersioningDriver implements VersioningDriver {
 
     for (File file : files) {
       if (!file.isFile()) {
+        report.addError("File '{}' in '{}' should be a file, but it isn't", file, dir);
         logger.warn("File '{}' is not a file in file-directory", file);
         return;
       }
@@ -122,11 +124,13 @@ public class FileCopyVersioningDriver implements VersioningDriver {
 
       Matcher versionMatcher = versionFilePattern.matcher(filename);
       if (!metaFilePattern.matcher(filename).matches() && !versionMatcher.matches()) {
+        report.addError("Unknown file '{}' in directory '{}'", file, dir);
         logger.warn("Unknown file '{}' in file-directory", file);
         return;
       }
 
       if (!versionMatcher.matches()) {
+        // this is a meta file - we ignore those here
         continue;
       }
 
@@ -137,12 +141,13 @@ public class FileCopyVersioningDriver implements VersioningDriver {
       try (FileInputStream metaIn = new FileInputStream(metaFile)) {
         meta = Metadata.Meta.parseFrom(metaIn);
       } catch (IOException e) {
-        logger.warn("Could not open metadata file '{}'", metaFile);
+        report.addError("Could not read metadata for version '{}' in directory '{}'", version, dir);
         logger.warn("", e);
         return;
       }
 
       if (versionMeta.containsKey(version)) {
+        report.addError("Version '{}' exists more than once in directory '{}'", version, dir);
         logger.warn("Version '{}' exists more than once with file '{}'", version, file);
         return;
       }
@@ -169,16 +174,26 @@ public class FileCopyVersioningDriver implements VersioningDriver {
       for (Integer version : versionsToDelete) {
         File versionFile = new File(dir, String.format("%d", version));
         File metaFile = new File(dir, String.format("%d%s", version, FileCopyBackupDriver.META_EXTENSION));
+        boolean deleted = false;
+        boolean metaDeleted = false;
         if (versionFile.exists()) {
-          if (!versionFile.delete()) {
+          deleted = versionFile.delete();
+          if (!deleted) {
+            report.addError("Could not delete version '{}' in directory '{}'", version, dir);
             logger.error("Could not delete version file '{}'", versionFile);
             continue;
           }
         }
-        if (metaFile.exists()) {
-          if (!metaFile.delete()) {
+        if (deleted && metaFile.exists()) {
+          metaDeleted = metaFile.delete();
+          if (!metaDeleted) {
+            report.addError("Could not delete metadata for version '{}' in directory '{}'", version, dir);
             logger.error("Could not delete version metafile '{}'", metaFile);
           }
+        }
+
+        if (deleted && metaDeleted) {
+          report.removedVersion();
         }
       }
     }
