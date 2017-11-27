@@ -1,6 +1,9 @@
 package ng3.agent;
 
+import ng3.common.TimeUtilsNG;
+
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,5 +58,27 @@ public class VersioningReportWriter implements VersioningReport {
 
   public synchronized void removedVersion() {
     removedVersions++;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder()
+        .append("startedAt: ").append(startedAt)
+        .append("\n")
+        .append("finishedAt: ").append(finishedAt)
+        .append("\n")
+        .append("Execution time: ").append(TimeUtilsNG.formatMillis(ChronoUnit.MILLIS.between(startedAt, finishedAt)));
+    sb.append("\n");
+    sb.append("Errors:\n");
+    for (String error : errors) {
+      sb.append(error).append("\n");
+    }
+    sb.append("Warnings:\n");
+    for (String warning : warnings) {
+      sb.append(warning).append("\n");
+    }
+    sb.append("Removed empty directories: ").append(removedEmptyDirectories).append("\n");
+    sb.append("Removed versions: ").append(removedVersions);
+    return sb.toString();
   }
 }

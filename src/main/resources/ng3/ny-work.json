@@ -3,16 +3,15 @@
     {
       "directory": "/home/johdin/tmp/backuplab",
       "store-as": "jsundin-tmp",
-      "versioning": {
-        "deleted": {
-          "strategy": "delete-history",
-          "retain-versions": 36,
-          "after": "1h"
-        },
-        "old-versions": {
-          "strategy": "delete-history",
-          "age": "1w"
-        }
+      "deleted-files": {
+        "strategy": "delete-history",
+        "retain-versions": 36,
+        "after": "1h"
+      },
+      "files": {
+        "strategy": "delete-history",
+        "age": "1w",
+        "retain-versions": 1
       }
     }
   ],

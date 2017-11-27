@@ -111,6 +111,9 @@ public class BackupAgent {
     session.endSession();
 
     report.setFinishedAt(ZonedDateTime.now());
+    System.out.println("--");
+    System.out.println(report);
+    System.out.println("--");
   }
 
   private void runVersioningJob(List<BackupDirectory> backupDirectories) {
@@ -126,6 +129,9 @@ public class BackupAgent {
     configuration.getBackupDriver().getVersioningDriver().performVersioning(dbClient, configuration, report, backupDirectories);
 
     report.setFinishedAt(ZonedDateTime.now());
+    System.out.println("--");
+    System.out.println(report);
+    System.out.println("--");
   }
 
   private Runnable shutdownListener = () -> {
