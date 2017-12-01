@@ -21,6 +21,14 @@ abstract public class AbstractBackupDriver implements BackupDriver {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
+  public void start(Configuration configuration) {
+  }
+
+  @Override
+  public void finish() {
+  }
+
+  @Override
   public final BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories) {
     //dbClient.buildQuery("update file set upload_finished=null").executeUpdate(); // TODO: BORT!
     dbClient.buildQuery("update file set upload_started=null where upload_finished is null")
@@ -39,7 +47,9 @@ abstract public class AbstractBackupDriver implements BackupDriver {
       password = configuration.getSecrets().get(encryptionKey);
       if (password == null) {
         logger.error("Could not find password for encryption key '{}'", encryptionKey);
-        report.addError("Could not find password for encryption key - see system logs for details");
+        if (report != null) {
+          report.addError("Could not find password for encryption key - see system logs for details");
+        }
         throw new RuntimeException("Could not find password for encryption key");
       }
     }

@@ -50,6 +50,8 @@ public class BackupAgent {
     countDownLatch = new CountDownLatch((runBackup ? 1 : 0) + (runVersioning ? 1 : 0));
     shutdownSynchronizer.addListener(shutdownListener);
 
+    configuration.getBackupDriver().start(configuration);
+
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new SimpleThreadFactory("BackupTask"));
     List<ScheduledFuture<?>> scheduledTasks = new ArrayList<>();
 
@@ -93,6 +95,7 @@ public class BackupAgent {
         Thread.interrupted();
       }
     }
+    configuration.getBackupDriver().finish();
     logger.info("BackupAgent shut down after {}", TimeUtilsNG.formatMillis(System.currentTimeMillis() - t0));
     return true;
   }

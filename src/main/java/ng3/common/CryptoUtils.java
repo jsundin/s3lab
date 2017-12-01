@@ -2,12 +2,10 @@ package ng3.common;
 
 import ng3.Settings;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -53,5 +51,9 @@ public class CryptoUtils {
 
   public static CipherOutputStream getEncryptionOutputStream(Key secret, byte[] iv, OutputStream outputStream) {
     return new CipherOutputStream(outputStream, getEncryptionCipher(secret, iv));
+  }
+
+  public static CipherInputStream getEncryptionInputStream(Key secret, byte[] iv, InputStream inputStream) {
+    return new CipherInputStream(inputStream, getEncryptionCipher(secret, iv));
   }
 }

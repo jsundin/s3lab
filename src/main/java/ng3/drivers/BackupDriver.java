@@ -19,6 +19,8 @@ import java.util.List;
     @JsonSubTypes.Type(value = S3BackupDriver.class, name = S3BackupDriver.INFORMAL_NAME)
 })
 public interface BackupDriver {
+  void start(Configuration configuration);
+  void finish();
   BackupSession startSession(DbClient dbClient, Configuration configuration, BackupReportWriter report, List<BackupDirectory> backupDirectories);
   String getInformalName();
   VersioningDriver getVersioningDriver() throws UnsupportedOperationException;

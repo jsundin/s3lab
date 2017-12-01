@@ -2,17 +2,7 @@
   "directories": [
     {
       "directory": "/home/johdin/tmp/backuplab",
-      "store-as": "jsundin-tmp",
-      "deleted-files": {
-        "strategy": "delete-history",
-        "retain-versions": 36,
-        "after": "1h"
-      },
-      "files": {
-        "strategy": "delete-history",
-        "age": "1w",
-        "retain-versions": 1
-      }
+      "store-as": "jsundin-tmp"
     }
   ],
   "global-rules": [
@@ -40,14 +30,21 @@
     }
   ],
   "interval": "1w",
-  "versioning-interval": "1m",
   "target": {
-    "driver": "file-copy",
-    "path": "/tmp/backups"
+    "driver": "s3",
+    "bucket": "testbucket",
+    "region": "us-west-2",
+    "access-key": "s3-access-key",
+    "secret-key": "s3-secret-key",
+    "threads": 12,
+    "compress": true,
+    "encrypt-with": "copy-key"
   },
   "secrets": {
     "copy-key": "secret password",
-    "s3-key!": "~/.secretpassword"
+    "s3-key!": "~/.secretpassword",
+    "s3-access-key": "AKIAIOSFODNN7EXAMPLE",
+    "s3-secret-key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
   },
   "database": {
     "url": "jdbc:derby:ng3;create=true"
