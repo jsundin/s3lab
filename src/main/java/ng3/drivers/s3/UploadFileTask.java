@@ -3,6 +3,7 @@ package ng3.drivers.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.Base64;
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.protobuf.ByteString;
 import ng3.Metadata;
 import ng3.Settings;
@@ -13,12 +14,10 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import s4lab.DigestInputStream;
+import throttling.ThrottledDigestInputStream;
 
 import javax.crypto.CipherOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.security.Key;
 import java.time.ZoneOffset;
@@ -38,17 +37,19 @@ class UploadFileTask {
   private final boolean compress;
   private final Key key;
   private final byte[] salt;
+  private final RateLimiter rateLimiter;
 
-  UploadFileTask(AmazonS3 client, String bucket, AbstractBackupDriver.BackupFile backupFile, String target, boolean compress) {
-    this(client, bucket, backupFile, target, compress, null, null);
+  UploadFileTask(AmazonS3 client, String bucket, AbstractBackupDriver.BackupFile backupFile, String target, boolean compress, RateLimiter rateLimiter) {
+    this(client, bucket, backupFile, target, compress, rateLimiter, null, null);
   }
 
-  UploadFileTask(AmazonS3 client, String bucket, AbstractBackupDriver.BackupFile backupFile, String target, boolean compress, Key key, byte[] salt) {
+  UploadFileTask(AmazonS3 client, String bucket, AbstractBackupDriver.BackupFile backupFile, String target, boolean compress, RateLimiter rateLimiter, Key key, byte[] salt) {
     this.client = client;
     this.bucket = bucket;
     this.backupFile = backupFile;
     this.target = target;
     this.compress = compress;
+    this.rateLimiter = rateLimiter;
     this.key = key;
     this.salt = salt;
   }
@@ -87,8 +88,15 @@ class UploadFileTask {
     }
 
     Metadata.Meta meta = metaBuilder.build();
-    try (FileInputStream fis = new FileInputStream(sourceFile)) {
-      client.putObject(bucket, target, fis, getObjectMetadata(meta, hasUnixDetails, sourceFile.length()));
+    InputStream in = null;
+    try {
+      in = new FileInputStream(sourceFile);
+      if (rateLimiter != null) {
+        in = new ThrottledDigestInputStream(in, rateLimiter);
+      }
+      client.putObject(bucket, target, in, getObjectMetadata(meta, hasUnixDetails, sourceFile.length()));
+    } finally {
+      IOUtils.closeQuietly(in);
     }
 
     if (deleteSourceFile) {

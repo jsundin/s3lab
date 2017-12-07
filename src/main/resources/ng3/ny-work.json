@@ -38,7 +38,8 @@
     "secret-key": "s3-secret-key",
     "threads": 12,
     "compress": true,
-    "encrypt-with": "copy-key"
+    "encrypt-with": "copy-key",
+    "throttling": "1k"
   },
   "secrets": {
     "copy-key": "secret password",

@@ -7,12 +7,15 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.util.concurrent.RateLimiter;
 import ng3.BackupDirectory;
 import ng3.agent.BackupReportWriter;
 import ng3.common.CryptoUtils;
 import ng3.common.SimpleThreadFactory;
 import ng3.common.ValuePair;
 import ng3.conf.Configuration;
+import ng3.conf.SizeToBytesDeserializer;
 import ng3.db.DbClient;
 import ng3.drivers.AbstractBackupDriver;
 import ng3.drivers.VersioningDriver;
@@ -39,6 +42,7 @@ public class S3BackupDriver extends AbstractBackupDriver {
   private final int threads;
   private final boolean compress;
   private final String encryptionKey;
+  private final RateLimiter rateLimiter;
 
   @JsonCreator
   public S3BackupDriver(
@@ -48,7 +52,8 @@ public class S3BackupDriver extends AbstractBackupDriver {
       @JsonProperty("secret-key") String secretKeyRef,
       @JsonProperty("threads") Integer threads,
       @JsonProperty("compress") boolean compress,
-      @JsonProperty("encrypt-with") String encryptionKey) {
+      @JsonProperty("encrypt-with") String encryptionKey,
+      @JsonProperty("throttling") @JsonDeserialize(using = SizeToBytesDeserializer.class) Long throttlingBps) {
     this.bucket = bucket;
     this.region = region;
     this.accessKeyRef = accessKeyRef;
@@ -56,6 +61,11 @@ public class S3BackupDriver extends AbstractBackupDriver {
     this.threads = threads == null || threads < 2 ? 1 : threads;
     this.compress = compress;
     this.encryptionKey = encryptionKey;
+    if (throttlingBps == null) {
+      rateLimiter = null;
+    } else {
+      rateLimiter = RateLimiter.create(throttlingBps);
+    }
   }
 
   @Override
@@ -148,11 +158,11 @@ public class S3BackupDriver extends AbstractBackupDriver {
 
       UploadFileTask uploadFileTask;
       if (encryptionPassword == null) {
-        uploadFileTask = new UploadFileTask(client, bucket, backupFile, target, compress);
+        uploadFileTask = new UploadFileTask(client, bucket, backupFile, target, compress, rateLimiter);
       } else {
         byte[] salt = CryptoUtils.generateSalt();
         Key key = CryptoUtils.generateKey(encryptionPassword, salt);
-        uploadFileTask = new UploadFileTask(client, bucket, backupFile, target, compress, key, salt);
+        uploadFileTask = new UploadFileTask(client, bucket, backupFile, target, compress, rateLimiter, key, salt);
       }
 
       threadSemaphore.acquireUninterruptibly();
